@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audria Research — Running AI Entirely on Your iPhone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #06060a;
+  --bg-elevated: #0d0d14;
+  --bg-card: #111118;
+  --bg-card-hover: #16161f;
+  --border: #1e1e2a;
+  --border-subtle: #14141e;
+  --text: #f0f0f5;
+  --text-secondary: #9d9db5;
+  --text-muted: #5c5c78;
+  --green: #15BF84;
+  --green-dim: rgba(21, 191, 132, 0.12);
+  --green-glow: rgba(21, 191, 132, 0.06);
+  --purple: #B850FD;
+  --purple-dim: rgba(184, 80, 253, 0.12);
+  --gradient: linear-gradient(135deg, #15BF84 0%, #B850FD 100%);
+  --gradient-text: linear-gradient(135deg, #15BF84 0%, #4DD4A8 30%, #8B6FE0 70%, #B850FD 100%);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --max-width: 820px;
+  --reading-width: 680px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--green); color: var(--bg); }
+
+/* ===== PROGRESS ===== */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 2px;
+  background: var(--gradient); z-index: 200; width: 0%;
+}
+
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 1.1rem 2rem;
+  display: flex; justify-content: space-between; align-items: center;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: rgba(6,6,10,0.75);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all 0.3s ease;
+}
+nav.scrolled { padding: 0.8rem 2rem; background: rgba(6,6,10,0.92); }
+
+.nav-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.nav-logo img { height: 22px; }
+.nav-logo span { font-weight: 700; font-size: 1.15rem; color: var(--text); letter-spacing: -0.01em; }
+
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
+  font-weight: 500; letter-spacing: 0.02em; transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+/* ===== HERO ===== */
+.hero {
+  position: relative; min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center; padding: 8rem 2rem 6rem; overflow: hidden;
+}
+
+.hero::before {
+  content: ''; position: absolute; top: -30%; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(21,191,132,0.08) 0%, rgba(184,80,253,0.04) 50%, transparent 70%);
+  border-radius: 50%; animation: pulse-bg 8s ease-in-out infinite;
+}
+
+@keyframes pulse-bg {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+  50% { transform: translateX(-50%) scale(1.1); opacity: 0.7; }
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.45rem 1.1rem; border-radius: 100px;
+  background: var(--green-dim); border: 1px solid rgba(21,191,132,0.2);
+  color: var(--green); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 2rem; position: relative; z-index: 1;
+  animation: fadeUp 0.8s ease-out;
+}
+.hero-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero h1 {
+  font-family: var(--font-serif); font-size: clamp(2.8rem, 6vw, 4.8rem);
+  font-weight: 400; line-height: 1.15; letter-spacing: -0.02em;
+  max-width: 820px; position: relative; z-index: 1;
+  animation: fadeUp 0.8s ease-out 0.1s both;
+}
+.hero h1 em {
+  font-style: italic;
+  background: var(--gradient-text);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem; color: var(--text-secondary); max-width: 560px;
+  margin-top: 1.5rem; line-height: 1.8; position: relative; z-index: 1;
+  animation: fadeUp 0.8s ease-out 0.2s both;
+}
+
+.hero-meta {
+  display: flex; align-items: center; gap: 1.5rem; margin-top: 2.5rem;
+  position: relative; z-index: 1; animation: fadeUp 0.8s ease-out 0.3s both;
+}
+.hero-meta .avatar {
+  width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+}
+.hero-meta .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.meta-text .author { font-weight: 600; font-size: 0.9rem; }
+.meta-text .date { color: var(--text-muted); font-size: 0.8rem; }
+.meta-divider { width: 1px; height: 28px; background: var(--border); }
+.reading-time {
+  color: var(--text-muted); font-size: 0.8rem;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== ARTICLE ===== */
+article { max-width: var(--max-width); margin: 0 auto; padding: 0 2rem 6rem; }
+article > * { max-width: var(--reading-width); }
+
+article p {
+  color: var(--text-secondary); margin-bottom: 1.75rem;
+  font-size: 1.0625rem; line-height: 1.85;
+}
+article p strong { color: var(--text); font-weight: 600; }
+article p em { color: var(--text); }
+
+article h2 {
+  font-family: var(--font-serif); font-size: 2.2rem; font-weight: 400;
+  letter-spacing: -0.02em; margin-top: 5rem; margin-bottom: 1.5rem;
+  color: var(--text); line-height: 1.25;
+}
+
+article h3 {
+  font-size: 1.2rem; font-weight: 600; margin-top: 2.5rem;
+  margin-bottom: 1rem; letter-spacing: -0.01em;
+}
+
+article a {
+  color: var(--green); text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-color: rgba(21,191,132,0.3);
+  transition: text-decoration-color 0.2s;
+}
+article a:hover { text-decoration-color: var(--green); }
+
+article ul, article ol {
+  margin-bottom: 1.75rem; padding-left: 1.25rem; color: var(--text-secondary);
+}
+article li { margin-bottom: 0.5rem; line-height: 1.8; }
+article li::marker { color: var(--green); }
+
+code {
+  font-family: var(--font-mono); font-size: 0.85em;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 0.15em 0.4em; border-radius: 5px; color: var(--green);
+}
+
+hr.divider {
+  max-width: 80px; height: 2px; border: none;
+  background: var(--gradient); margin: 4rem 0; opacity: 0.5;
+}
+
+/* ===== PULL QUOTE ===== */
+.pull-quote {
+  max-width: var(--max-width) !important; margin: 3rem -2rem;
+  padding: 2.5rem 3rem; border-left: 3px solid var(--green);
+  background: linear-gradient(135deg, var(--green-glow) 0%, transparent 100%);
+  border-radius: 0 16px 16px 0;
+}
+.pull-quote p {
+  font-family: var(--font-serif); font-size: 1.45rem; font-style: italic;
+  line-height: 1.6; color: var(--text); margin-bottom: 0;
+}
+
+/* ===== STATS ROW ===== */
+.stats-row {
+  max-width: var(--max-width) !important;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 1px;
+  margin: 3rem -2rem; background: var(--border);
+  border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+}
+.stat { background: var(--bg-card); padding: 2rem 1.5rem; text-align: center; }
+.stat-number {
+  font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em;
+  background: var(--gradient); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-clip: text; line-height: 1.2;
+}
+.stat-label {
+  font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;
+  text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.5;
+}
+
+/* ===== COMPARISON TABLE ===== */
+.comparison-table {
+  max-width: var(--max-width) !important; margin: 2.5rem -2rem;
+  border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+}
+.comparison-table table {
+  width: 100%; border-collapse: collapse; font-size: 0.925rem;
+}
+.comparison-table th {
+  background: var(--bg-card); padding: 1rem 1.25rem; text-align: left;
+  font-weight: 600; font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.comparison-table td {
+  padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary); background: var(--bg-elevated);
+}
+.comparison-table tr:last-child td { border-bottom: none; }
+.comparison-table td:first-child { color: var(--text); font-weight: 500; }
+.highlight-cell {
+  color: var(--green) !important; font-weight: 600 !important;
+}
+
+/* ===== CODE BLOCK ===== */
+.code-block {
+  max-width: var(--max-width) !important; margin: 2.5rem -2rem;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.8rem 1.25rem; border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.code-dots { display: flex; gap: 6px; }
+.code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.code-dots span:nth-child(1) { background: #ef4444; }
+.code-dots span:nth-child(2) { background: #eab308; }
+.code-dots span:nth-child(3) { background: #22c55e; }
+.code-lang {
+  font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.code-block pre {
+  padding: 1.5rem; overflow-x: auto; font-family: var(--font-mono);
+  font-size: 0.85rem; line-height: 1.75; color: var(--text-secondary);
+}
+.code-block .kw { color: var(--purple); }
+.code-block .str { color: var(--green); }
+.code-block .cm { color: #444466; font-style: italic; }
+.code-block .fn { color: #60a5fa; }
+.code-block .num { color: #f59e0b; }
+.code-block .type { color: #f472b6; }
+
+/* ===== CALLOUT ===== */
+.callout {
+  max-width: var(--reading-width); margin: 2.5rem 0;
+  padding: 1.5rem 1.75rem; border-radius: 12px;
+  border: 1px solid rgba(21,191,132,0.2);
+  background: rgba(21,191,132,0.03);
+}
+.callout.purple {
+  border-color: rgba(184,80,253,0.2);
+  background: rgba(184,80,253,0.03);
+}
+.callout-header {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-weight: 600; font-size: 0.88rem; margin-bottom: 0.75rem; color: var(--green);
+}
+.callout.purple .callout-header { color: var(--purple); }
+.callout p { font-size: 0.95rem; margin-bottom: 0; color: var(--text-secondary); }
+
+/* ===== FIGURE ===== */
+.figure {
+  max-width: var(--max-width) !important; margin: 3rem -2rem;
+  border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+}
+.figure-caption {
+  padding: 1rem 1.25rem; background: var(--bg-card);
+  font-size: 0.8rem; color: var(--text-muted); text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== TPS VISUALIZER ===== */
+.tps-demo {
+  max-width: var(--max-width) !important; margin: 3rem -2rem;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--bg-card); overflow: hidden;
+}
+.tps-header {
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tps-header h4 {
+  font-size: 0.9rem; font-weight: 600; color: var(--text);
+}
+.tps-controls { display: flex; gap: 0.5rem; }
+.tps-btn {
+  padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg-elevated); color: var(--text-muted);
+  font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  font-family: var(--font-sans); transition: all 0.2s;
+}
+.tps-btn:hover { border-color: var(--green); color: var(--text); }
+.tps-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.tps-output {
+  padding: 1.5rem; min-height: 120px; font-family: var(--font-mono);
+  font-size: 0.9rem; line-height: 1.75; color: var(--text);
+}
+.tps-output .cursor {
+  display: inline-block; width: 2px; height: 1.1em;
+  background: var(--green); vertical-align: text-bottom;
+  animation: cursor-blink 0.8s step-end infinite;
+}
+@keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.tps-footer {
+  padding: 0.75rem 1.5rem; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.75rem; color: var(--text-muted);
+}
+.tps-footer .speed { color: var(--green); font-weight: 600; }
+
+/* ===== KNOWLEDGE GRAPH ===== */
+.kg-visual {
+  max-width: var(--max-width) !important; margin: 3rem -2rem;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--bg-card); overflow: hidden;
+}
+.kg-canvas { position: relative; height: 320px; }
+.kg-node {
+  position: absolute; padding: 0.5rem 1rem; border-radius: 10px;
+  font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.kg-node:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(21,191,132,0.15); }
+.kg-node.person { background: var(--green-dim); color: var(--green); border-color: rgba(21,191,132,0.3); }
+.kg-node.place { background: var(--purple-dim); color: var(--purple); border-color: rgba(184,80,253,0.3); }
+.kg-node.org { background: rgba(96,165,250,0.12); color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+.kg-node.concept { background: rgba(251,191,36,0.1); color: #fbbf24; border-color: rgba(251,191,36,0.25); }
+.kg-edge {
+  position: absolute; font-size: 0.65rem; color: var(--text-muted);
+  background: var(--bg-card); padding: 0.15rem 0.5rem; border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ===== COMPARISON SIDE BY SIDE ===== */
+.side-by-side {
+  max-width: var(--max-width) !important; margin: 2.5rem -2rem;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--border); border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.side-col { background: var(--bg-card); padding: 1.5rem; }
+.side-col h5 {
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 1rem; font-weight: 600;
+}
+.side-col.audria h5 { color: var(--green); }
+.side-col p { font-size: 0.9rem; line-height: 1.7; color: var(--text-secondary); margin: 0; }
+.side-col pre {
+  font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7;
+  color: var(--text-secondary); white-space: pre-wrap;
+}
+
+/* ===== XCODE SCREENSHOT PLACEHOLDER ===== */
+.xcode-stats {
+  max-width: var(--max-width) !important; margin: 3rem -2rem;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--bg-card); padding: 2rem;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem;
+}
+.xcode-stat { text-align: center; }
+.xcode-stat .label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 0.5rem;
+}
+.xcode-stat .value {
+  font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+}
+.xcode-stat .value.green { color: var(--green); }
+.xcode-stat .value.purple { color: var(--purple); }
+.xcode-stat .value.muted { color: var(--text-muted); }
+.xcode-stat .unit { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* ===== SECTION NUMBER ===== */
+.section-num {
+  display: inline-block; font-size: 0.7rem; font-weight: 700;
+  color: var(--green); letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  background: var(--green-dim); padding: 0.25rem 0.75rem; border-radius: 100px;
+}
+
+/* ===== TAGS ===== */
+.tags {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border);
+}
+.tag {
+  padding: 0.35rem 0.85rem; border-radius: 100px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 0.75rem; color: var(--text-muted); text-decoration: none;
+  transition: all 0.2s;
+}
+.tag:hover { border-color: var(--green); color: var(--green); }
+
+/* ===== AUTHOR CARD ===== */
+.author-card {
+  max-width: var(--reading-width); margin-top: 4rem; padding: 2rem;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--bg-card); display: flex; gap: 1.5rem; align-items: center;
+}
+.author-avatar {
+  width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+}
+.author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.author-info h4 { font-weight: 600; font-size: 1rem; margin-bottom: 0.2rem; }
+.author-info p { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+/* ===== FOOTER ===== */
+footer {
+  max-width: var(--max-width); margin: 0 auto; padding: 3rem 2rem 4rem;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+footer p { font-size: 0.8rem; color: var(--text-muted); }
+footer .logo img { height: 18px; opacity: 0.5; }
+
+/* ===== REVEAL ===== */
+.reveal {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2.2rem; }
+  .stats-row { grid-template-columns: 1fr; }
+  .side-by-side { grid-template-columns: 1fr; }
+  .xcode-stats { grid-template-columns: repeat(2,1fr); }
+  .pull-quote, .code-block, .figure, .tps-demo, .kg-visual,
+  .comparison-table, .side-by-side, .xcode-stats, .stats-row { margin-left: 0; margin-right: 0; }
+  .nav-links { display: none; }
+  footer { flex-direction: column; gap: 1rem; text-align: center; }
+  .author-card { flex-direction: column; text-align: center; }
+  .tps-controls { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <img src="logos/Audria Logo.svg" alt="Audria">
+  </a>
+  <ul class="nav-links">
+    <li><a href="#vision">Vision</a></li>
+    <li><a href="#speed">Speed</a></li>
+    <li><a href="#intelligence">Intelligence</a></li>
+    <li><a href="#npu">NPU</a></li>
+    <li><a href="#memory">Memory</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-badge">Research Update</div>
+  <h1>Running AI Entirely<br>on <em>Your iPhone</em></h1>
+  <p class="hero-subtitle">
+    No cloud. No server. No data leaving your pocket. We built a complete voice-first
+    AI system that runs its entire pipeline locally — and today we're showing it working
+    on an iPhone 16e in airplane mode.
+  </p>
+  <div class="hero-meta">
+    <div class="avatar" style="background: var(--gradient); display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--bg);">A</div>
+    <div class="meta-text">
+      <div class="author">Audria Research</div>
+      <div class="date">February 2026</div>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="reading-time">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      18 min read
+    </div>
+  </div>
+</header>
+
+<!-- ARTICLE -->
+<article>
+
+  <!-- ===== SECTION 1: VISION ===== -->
+  <div class="section-num reveal" id="vision">01 — Vision</div>
+  <h2 class="reveal">What If the AI That Knows You Never Had to Leave Your Phone?</h2>
+
+  <p class="reveal">At Audria, we don't assume — we understand from first principles. Every number, every metric should make sense before we see it. That philosophy is what drove us to ask a question most teams don't bother with:</p>
+
+  <div class="pull-quote reveal">
+    <p>"What if the AI that knows you never has to leave your phone?"</p>
+  </div>
+
+  <p class="reveal">No cloud. No server. No data leaving your pocket. Just your device, thinking for you. We set out to build exactly that — a voice-first AI assistant that runs its entire pipeline locally on an iPhone. And today, we're showing it working on an iPhone 16e in airplane mode, nothing connected, nothing sent anywhere.</p>
+
+  <h3 class="reveal">The Wall We Hit</h3>
+
+  <p class="reveal">Getting here wasn't straightforward. We made great progress on the AI side — models fast enough, smart enough, efficient enough. But we hit a blocker that no amount of engineering could solve alone: <strong>iOS.</strong></p>
+
+  <p class="reveal">When an app runs in the background on iPhone, the operating system restricts what it can do. For a voice-first assistant that needs to be always listening, always ready — this is a fundamental constraint. We explored it down to the last detail. The conclusion was honest: we cannot run our full AI pipeline locally while the app is in the background, not because of physics, but because of a system-level policy we don't control.</p>
+
+  <p class="reveal">Hardware improves every year. AI models get more efficient every year. But no curve fixes a policy constraint — that requires working with Apple directly, which is a conversation we're pursuing.</p>
+
+  <p class="reveal">What we <em>can</em> show today is everything we've achieved within those boundaries: a complete, locally-running AI system that responds in milliseconds, reasons about your life, and never sends your conversations anywhere.</p>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 2: SPEED ===== -->
+  <div class="section-num reveal" id="speed">02 — Speed</div>
+  <h2 class="reveal">What On-Device Actually Feels Like</h2>
+
+  <p class="reveal">We built and optimized two language models that run entirely on the iPhone 16e:</p>
+
+  <ul class="reveal">
+    <li><strong>Audria On-Device LLM</strong> — our primary model for reasoning, memory, and tool use. Runs at <strong>20 tokens/second</strong>.</li>
+    <li><strong>Audria On-Device LLM Mini</strong> — optimized for speed on latency-critical tasks. Runs at <strong>70 tokens/second</strong>.</li>
+  </ul>
+
+  <!-- TPS VISUALIZER -->
+  <div class="tps-demo reveal">
+    <div class="tps-header">
+      <h4>⚡ Token Speed Visualizer</h4>
+      <div class="tps-controls">
+        <button class="tps-btn active" data-tps="20" data-label="On-Device LLM">20 TPS</button>
+        <button class="tps-btn" data-tps="70" data-label="On-Device Mini">70 TPS</button>
+        <button class="tps-btn" data-tps="100" data-delay="800" data-label="Cloud SOTA">Cloud</button>
+      </div>
+    </div>
+    <div class="tps-output" id="tpsOutput"><span class="cursor"></span></div>
+    <div class="tps-footer">
+      <span id="tpsLabel">Audria On-Device LLM</span>
+      <span>TTFT: <span class="speed" id="tpsTTFT">10–20ms</span></span>
+    </div>
+  </div>
+
+  <h3 class="reveal">The Number That Actually Matters</h3>
+
+  <p class="reveal">Throughput — tokens per second — is not the most important metric for a conversational AI. <strong>Time to first token (TTFT)</strong> is. It's what determines whether the AI feels responsive or sluggish.</p>
+
+  <div class="comparison-table reveal">
+    <table>
+      <thead>
+        <tr><th>Model</th><th>Output Speed</th><th>Time to First Token</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Audria On-Device LLM</td>
+          <td>20 tokens/sec</td>
+          <td class="highlight-cell">10–20ms</td>
+        </tr>
+        <tr>
+          <td>Audria On-Device LLM Mini</td>
+          <td>70 tokens/sec</td>
+          <td class="highlight-cell">10–20ms</td>
+        </tr>
+        <tr>
+          <td>Cloud SOTA (leading real-time API)</td>
+          <td>80–140 tokens/sec</td>
+          <td>500–1,200ms</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="reveal">Our models start responding in 10–20 milliseconds. Cloud starts responding in half a second to over a second — on a good connection. That is a <strong>25–60× difference</strong> in perceived responsiveness.</p>
+
+  <p class="reveal">For a voice-first assistant, that difference isn't a benchmark. It's whether the AI feels like part of the conversation, or an interruption to it.</p>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 3: INTELLIGENCE ===== -->
+  <div class="section-num reveal" id="intelligence">03 — Intelligence</div>
+  <h2 class="reveal">Small Models, Real Tasks</h2>
+
+  <p class="reveal">Speed without intelligence is useless. So we ran our models head-to-head against GPT-4o — not on generic benchmarks, but on the specific tasks Audria actually needs to perform. Judge the outputs yourself.</p>
+
+  <h3 class="reveal">Finding One Fact in 47,000 Tokens</h3>
+
+  <p class="reveal">We buried a single target fact inside approximately 47,000 tokens of unrelated conversation — the equivalent of a full day of dialogue. Both Audria On-Device LLM and Audria On-Device LLM Mini retrieved the correct fact with <strong>100% accuracy</strong>.</p>
+
+  <div class="callout reveal">
+    <div class="callout-header">🎯 Why This Matters</div>
+    <p>Audria builds context about your life over time. Being able to surface the right detail from a long history isn't a nice-to-have — it's foundational.</p>
+  </div>
+
+  <h3 class="reveal">Reasoning About What You Need (Without Being Asked)</h3>
+
+  <p class="reveal"><strong>Prompt:</strong> <em>"I am going to meet my friend on his birthday."</em><br>Task: Identify what the user might actually need, without being told.</p>
+
+  <div class="side-by-side reveal">
+    <div class="side-col">
+      <h5>GPT-4o</h5>
+      <p>Plan a thoughtful gift. Suggest activities. Help write a birthday message.</p>
+    </div>
+    <div class="side-col audria">
+      <h5>Audria On-Device LLM</h5>
+      <p>Remind you of the date and time. Brainstorm gift ideas. Draft a birthday message or invitation.</p>
+    </div>
+  </div>
+
+  <p class="reveal">Both models surface the same implicit needs. The on-device model does it on your iPhone, privately, instantly.</p>
+
+  <h3 class="reveal">Planning Actions with Tools</h3>
+
+  <p class="reveal"><strong>Prompt:</strong> <em>"I can't hear clearly during my calls."</em><br>Task: Given four diagnostic tools, produce an ordered execution plan.</p>
+
+  <div class="side-by-side reveal">
+    <div class="side-col">
+      <h5>GPT-4o</h5>
+      <pre>1. speaker_test
+2. mic_test
+3. bluetooth_check
+4. noise_suppression_toggle</pre>
+    </div>
+    <div class="side-col audria">
+      <h5>Audria On-Device LLM</h5>
+      <pre>1. mic_test
+2. speaker_test
+3. bluetooth_check
+4. noise_suppression_toggle</pre>
+    </div>
+  </div>
+
+  <p class="reveal">Both produce valid, well-reasoned plans. Different starting points, both defensible.</p>
+
+  <h3 class="reveal">Full Agentic Reasoning: Bob's Birthday</h3>
+
+  <p class="reveal">This is the hardest test. No instructions. Just: <em>"I am going to meet my friend Bob for his birthday."</em> The model had to decide on its own to: retrieve Bob's profile from memory, identify his interests, and plan something meaningful.</p>
+
+  <div class="side-by-side reveal">
+    <div class="side-col">
+      <h5>GPT-4o</h5>
+      <p>Retrieved Bob's profile (photographer, cyclist, jazz lover). Searched for gifts across all three interest areas. Returned product recommendations.</p>
+    </div>
+    <div class="side-col audria">
+      <h5>Audria On-Device LLM</h5>
+      <p>Retrieved the same profile. Planned an experience: a NYC photo scavenger hunt with vintage cameras (Bob collects them), a jazz and pizza evening (his two passions), a visit to an animal shelter (his volunteer work), ending with an impromptu photo exhibition. Every recommendation grounded in Bob's actual profile.</p>
+    </div>
+  </div>
+
+  <p class="reveal">Both completed the full reasoning loop — memory retrieval, interest mapping, personalized planning — with no human guidance. Ours did it entirely on-device.</p>
+
+  <h3 class="reveal">Math with Tools</h3>
+
+  <p class="reveal"><strong>Depreciation problem:</strong> TV bought for Rs. 21,000, depreciated 5% per year. Value after 3 years?</p>
+
+  <p class="reveal">Both on-device models correctly decomposed this into sequential tool calls: <code>0.95 × 0.95 = 0.9025</code> → <code>0.9025 × 0.95 = 0.857375</code> → <code>21,000 × 0.857375 = <strong>18,004.875</strong></code></p>
+
+  <p class="reveal">Correct answer. No mental math shortcuts, no errors — just reliable tool-augmented reasoning.</p>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 4: NPU ===== -->
+  <div class="section-num reveal" id="npu">04 — Neural Engine</div>
+  <h2 class="reveal">How We Made It Actually Run on the Neural Engine</h2>
+
+  <p class="reveal">Saying "our model runs on-device" is easy. Making it run efficiently — on the right chip, at the right power — is the hard part almost nobody talks about.</p>
+
+  <h3 class="reveal">The iPhone Has a Chip Built for AI. Most Apps Don't Use It.</h3>
+
+  <p class="reveal">The iPhone ships with an Apple Neural Engine (ANE) — a dedicated processor for AI workloads, capable of running billions of operations per second at a fraction of the power draw of the GPU. It's what makes on-device AI practical at all.</p>
+
+  <p class="reveal">Here's the catch: the ANE only supports certain operations. If your model uses anything it doesn't recognize, it silently falls back to the CPU or GPU — and your performance and power efficiency collapse. Apple provides Core ML as the interface, but the gap between "runs on Core ML" and "actually runs on the ANE" is enormous. Most teams never cross it.</p>
+
+  <h3 class="reveal">What We Found, and How</h3>
+
+  <p class="reveal">Our starting point was a community insight from the open-source world — a post on HuggingFace by the ANEMLL project describing a specific problem: <strong>RMSNorm doesn't run natively on the ANE.</strong></p>
+
+  <p class="reveal">Most modern language models use RMSNorm for normalization. But the ANE was designed when LayerNorm was the standard, and its hardware op set hasn't changed. The solution: mathematically reformulate RMSNorm as a LayerNorm operation by concatenating the input vector with its negation. The result is equivalent, but expressed in operations the ANE understands natively.</p>
+
+  <p class="reveal">We hit real failures along the way. An incorrect RoPE implementation that produced garbage positional encodings. Greedy decoding that caused the model to repeat itself endlessly until we added a repetition penalty. Each failure was a lesson in how unforgiving the ANE is to implementation errors that a GPU would silently paper over.</p>
+
+  <h3 class="reveal">The Result: 1,171 Out of 1,178 Operations on the Neural Engine</h3>
+
+  <div class="xcode-stats reveal">
+    <div class="xcode-stat">
+      <div class="label">Neural Engine</div>
+      <div class="value green">1,171</div>
+      <div class="unit">operations</div>
+    </div>
+    <div class="xcode-stat">
+      <div class="label">GPU</div>
+      <div class="value muted">0</div>
+      <div class="unit">operations</div>
+    </div>
+    <div class="xcode-stat">
+      <div class="label">CPU</div>
+      <div class="value muted">7</div>
+      <div class="unit">operations</div>
+    </div>
+    <div class="xcode-stat">
+      <div class="label">Prediction</div>
+      <div class="value purple">12.77</div>
+      <div class="unit">ms median</div>
+    </div>
+  </div>
+
+  <p class="reveal">The 7 CPU operations aren't failures — they're operations that genuinely have no ANE equivalent and aren't on the performance-critical path. Everything that can run on the ANE does.</p>
+
+  <div class="callout purple reveal">
+    <div class="callout-header">🔋 Why This Matters</div>
+    <p>The ANE is dramatically more power-efficient than the GPU for matrix operations. Running on the ANE means your battery doesn't pay for AI. It means an always-on assistant is actually viable, not just theoretically possible. Most teams never reach this level. There is no manual. It is one of the most defensible things we've built.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 5: CONSTRAINED DECODING ===== -->
+  <div class="section-num reveal" id="constrained">05 — Reliability</div>
+  <h2 class="reveal">Making Small Models Reliable: Constrained Decoding</h2>
+
+  <p class="reveal">Small models are fast. But fast and wrong is worse than slow and right.</p>
+
+  <p class="reveal">One of the honest limitations of small language models is that they are not reliably structured in their output. For a system like Audria that depends on structured output at every step — memory routing, tool calls, knowledge extraction — unreliability breaks the pipeline.</p>
+
+  <p class="reveal"><strong>Constrained decoding</strong> solves this by restricting which tokens the model is allowed to generate at each step, based on a schema. The model can only produce tokens that lead to valid structured output. It cannot go off-script.</p>
+
+  <h3 class="reveal">Same Model. Same Input. Night and Day.</h3>
+
+  <div class="side-by-side reveal">
+    <div class="side-col">
+      <h5>❌ Without Constrained Decoding</h5>
+      <pre style="color: var(--text-muted);">"I see. Sarah works in Microsoft
+and prefers tea, while John lives
+in Oregon."
+Now, determine the type of output
+to provide based on the
+conversation...
+{"reasonings": ["The conversation
+involves two people discussing...</pre>
+      <p style="color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; font-weight: 600;">JSON parsed: NO</p>
+    </div>
+    <div class="side-col audria">
+      <h5>✅ With Constrained Decoding</h5>
+      <pre>{
+  "reasoning": "Contains info
+    about Sarah and John",
+  "db_type": "graph",
+  "summary": "Sarah works at
+    Microsoft. John lives in
+    Portland.",
+  "triplets": [
+    {"head": "Sarah",
+     "relation": "works_at",
+     "object": "Microsoft"}
+  ]
+}</pre>
+      <p style="color: var(--green); font-size: 0.8rem; margin-top: 0.75rem; font-weight: 600;">Schema valid: YES</p>
+    </div>
+  </div>
+
+  <h3 class="reveal">It Works Across Every Model We Tested</h3>
+
+  <div class="comparison-table reveal">
+    <table>
+      <thead>
+        <tr><th>Model</th><th>Without</th><th>With</th><th>TPS (guided)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Qwen3-0.6B</td><td>❌ Invalid</td><td class="highlight-cell">✅ Valid</td><td>22.52</td></tr>
+        <tr><td>Gemma-3-270m</td><td>❌ Invalid</td><td class="highlight-cell">✅ Valid</td><td>26.80</td></tr>
+        <tr><td>Qwen3-1.7B</td><td>❌ Invalid</td><td class="highlight-cell">✅ Valid</td><td>28.50</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="reveal">The <strong>Gemma-3-270m</strong> result is worth pausing on. 270 million parameters. That is roughly <strong>6,000× smaller than GPT-4</strong>. It produces production-ready structured output that Audria's memory pipeline can consume directly. That would not be possible without constrained decoding.</p>
+
+  <div class="callout reveal">
+    <div class="callout-header">📈 Bonus: It Also Makes Models Faster</div>
+    <p>Because the model no longer wastes tokens exploring invalid paths, constrained decoding improves throughput. Qwen3-1.7B went from 19.97 TPS to 28.50 TPS — a <strong>43% speed increase</strong>, for free.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 6: MEMORY ===== -->
+  <div class="section-num reveal" id="memory">06 — Memory</div>
+  <h2 class="reveal">Audria Knows What to Remember, and How</h2>
+
+  <p class="reveal">Most AI assistants treat every piece of information the same way. Audria doesn't.</p>
+
+  <p class="reveal">When you tell Audria something personal — where you live, that your daughter is learning piano, that your friend Bob collects vintage cameras — that's not the same as a generic conversation about the weather. Personal facts deserve to be stored differently: connected to each other, linked to the people and places they belong to, ready to be reasoned over — not just keyword-matched.</p>
+
+  <h3 class="reveal">How It Works</h3>
+
+  <ul class="reveal">
+    <li><strong>Facts about your life</strong> — relationships, preferences, locations — stored as a connected web of knowledge (knowledge graph).</li>
+    <li><strong>Substantive conversations</strong> — discussions, ideas, context — stored for retrieval when relevant.</li>
+    <li><strong>Idle chatter</strong> — discarded. Audria doesn't remember noise.</li>
+  </ul>
+
+  <h3 class="reveal">What This Looks Like as a Knowledge Graph</h3>
+
+  <!-- KNOWLEDGE GRAPH VISUALIZATION -->
+  <div class="kg-visual reveal">
+    <div class="kg-canvas" id="kgCanvas">
+      <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+        <!-- Edges drawn by JS -->
+      </svg>
+      <div class="kg-node person" style="top: 35%; left: 10%;">Alice</div>
+      <div class="kg-node place" style="top: 15%; left: 42%;">San Francisco</div>
+      <div class="kg-node org" style="top: 55%; left: 40%;">Bytewave Labs</div>
+      <div class="kg-node concept" style="top: 15%; left: 72%;">AI Startups</div>
+      <div class="kg-node person" style="top: 70%; left: 68%;">Bob</div>
+      <div class="kg-node person" style="top: 75%; left: 15%;">Carol</div>
+      <div class="kg-node concept" style="top: 55%; left: 75%;">Painting</div>
+
+      <div class="kg-edge" style="top: 24%; left: 23%;">lives_in</div>
+      <div class="kg-edge" style="top: 48%; left: 22%;">works_at</div>
+      <div class="kg-edge" style="top: 28%; left: 58%;">interested_in</div>
+      <div class="kg-edge" style="top: 60%; left: 55%;">asks_about</div>
+      <div class="kg-edge" style="top: 42%; left: 62%;">remembers</div>
+    </div>
+    <div class="figure-caption">Knowledge graph automatically constructed from a single conversation snippet</div>
+  </div>
+
+  <h3 class="reveal">Why Standard AI Memory Falls Short</h3>
+
+  <p class="reveal"><strong>Query:</strong> <em>"Why is David looking for a piano teacher?"</em></p>
+  <p class="reveal">David never said this explicitly. The answer required connecting: David → has daughter Emma → Emma is learning piano → David mentioned wanting support for Emma's education — across separate conversations.</p>
+
+  <div class="side-by-side reveal">
+    <div class="side-col audria">
+      <h5>Audria Memory</h5>
+      <p>"David asked me to look for a piano teacher because he is likely interested in helping his daughter Emma with her education."</p>
+    </div>
+    <div class="side-col">
+      <h5>Standard RAG</h5>
+      <p>"I don't have enough information from the stored context to answer."</p>
+    </div>
+  </div>
+
+  <p class="reveal"><strong>Query:</strong> <em>"Who should I talk to if I want to visit Paris?"</em></p>
+
+  <div class="side-by-side reveal">
+    <div class="side-col audria">
+      <h5>Audria Memory</h5>
+      <p>"You could talk to Lila, as she lives in Paris. Her connection to Paris comes from the knowledge graph rather than any specific conversation snippet."</p>
+    </div>
+    <div class="side-col">
+      <h5>Standard RAG</h5>
+      <p>"You should talk to your neighbor, Lila, if you want to visit Paris."</p>
+    </div>
+  </div>
+
+  <p class="reveal">The difference isn't just retrieval accuracy. It's the difference between a system that finds your words and a system that <strong>understands your world</strong>. Every conversation makes Audria's model of you more complete. Your data stays on your device. The map Audria builds of your life belongs entirely to you.</p>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION 7: STT & CLOSE ===== -->
+  <div class="section-num reveal" id="stt">07 — The Full Pipeline</div>
+  <h2 class="reveal">Speech to Text: The Front Door</h2>
+
+  <p class="reveal">Every interaction with Audria begins with your voice. So the speech-to-text layer can't be an afterthought.</p>
+
+  <div class="stats-row reveal">
+    <div class="stat">
+      <div class="stat-number">100×</div>
+      <div class="stat-label">Real-time<br>speed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">≈</div>
+      <div class="stat-label">Whisper Large v3<br>accuracy</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Network<br>dependency</div>
+    </div>
+  </div>
+
+  <p class="reveal">100 seconds of audio transcribed in 1 second. Accuracy comparable to OpenAI's Whisper Large v3 — the gold standard for speech recognition — matched entirely on-device. Zero network dependency, works in airplane mode, costs nothing per minute.</p>
+
+  <h3 class="reveal">Unit Economics</h3>
+
+  <p class="reveal">Running AI on-device isn't just a privacy story. It's a business fundamentals story. Every competitor running everything through the cloud pays for every second of every conversation. Our hybrid architecture — NPU for everything we can run locally, cloud only where it genuinely adds capability — results in <strong>90% better unit economics</strong> than a cloud-first approach.</p>
+
+  <p class="reveal">As mobile chips improve and models get more efficient, the on-device share of that equation only grows. We're building Audria to ride that curve — and what we've demonstrated today, on a single iPhone 16e in airplane mode, is only the beginning of what's possible on the device already in your pocket.</p>
+
+  <!-- TAGS -->
+  <div class="tags reveal">
+    <a href="#" class="tag">On-Device AI</a>
+    <a href="#" class="tag">Speech Recognition</a>
+    <a href="#" class="tag">Apple Neural Engine</a>
+    <a href="#" class="tag">Small Language Models</a>
+    <a href="#" class="tag">Knowledge Graphs</a>
+    <a href="#" class="tag">Constrained Decoding</a>
+    <a href="#" class="tag">Voice AI</a>
+    <a href="#" class="tag">Privacy</a>
+  </div>
+
+  <!-- AUTHOR CARD -->
+  <div class="author-card reveal">
+    <div class="author-avatar" style="background: var(--gradient); display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:var(--bg);">A</div>
+    <div class="author-info">
+      <h4>Audria Research</h4>
+      <p>Building the voice-first future of personal computing. We make ambient intelligence that disappears — so you can be present.</p>
+    </div>
+  </div>
+
+</article>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo"><img src="logos/Audria Logo.svg" alt="Audria"></div>
+  <p>© 2026 Audria. All rights reserved.</p>
+</footer>
+
+<!-- SCRIPTS -->
+<script>
+// Progress bar
+const progressBar = document.getElementById('progressBar');
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  const s = document.documentElement.scrollTop;
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  progressBar.style.width = (s/h*100) + '%';
+  nav.classList.toggle('scrolled', s > 50);
+});
+
+// Reveal on scroll
+const reveals = document.querySelectorAll('.reveal');
+const ro = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); ro.unobserve(e.target); }});
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+reveals.forEach(el => ro.observe(el));
+
+// TPS Visualizer
+const tpsText = "The voice-first paradigm isn't just about replacing touch interfaces. It's about unlocking computing in moments where screens are impossible — while driving, while cooking, while being present with the people around you. At Audria, we believe the next great computing platform won't be something you look at. It'll be something you barely notice.";
+const tpsOutput = document.getElementById('tpsOutput');
+const tpsLabel = document.getElementById('tpsLabel');
+const tpsTTFT = document.getElementById('tpsTTFT');
+const tpsBtns = document.querySelectorAll('.tps-btn');
+let tpsInterval = null;
+
+function runTPS(tps, delay, label) {
+  clearInterval(tpsInterval);
+  tpsOutput.innerHTML = '<span class="cursor"></span>';
+  let i = 0;
+  const msPerChar = 1000 / (tps * 0.75); // ~0.75 chars per token
+
+  const labels = { 20: 'Audria On-Device LLM', 70: 'Audria On-Device LLM Mini', 100: 'Cloud SOTA' };
+  const ttfts = { 20: '10–20ms', 70: '10–20ms', 100: '500–1,200ms' };
+  tpsLabel.textContent = labels[tps] || label;
+  tpsTTFT.textContent = ttfts[tps] || '~800ms';
+
+  setTimeout(() => {
+    tpsInterval = setInterval(() => {
+      if (i >= tpsText.length) { clearInterval(tpsInterval); return; }
+      const cursor = tpsOutput.querySelector('.cursor');
+      const span = document.createTextNode(tpsText[i]);
+      tpsOutput.insertBefore(span, cursor);
+      i++;
+    }, msPerChar);
+  }, delay || 0);
+}
+
+tpsBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tpsBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    runTPS(+btn.dataset.tps, +btn.dataset.delay || 0, btn.dataset.label);
+  });
+});
+
+// Auto-start
+setTimeout(() => runTPS(20, 0), 1000);
+</script>
+
+</body>
+</html>
