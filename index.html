@@ -479,8 +479,8 @@ footer .logo img { height: 18px; opacity: 0.5; }
   display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem;
 }
 .bar-label {
-  font-size: 0.75rem; color: var(--text-secondary); min-width: 90px;
-  text-align: right; font-family: var(--font-mono);
+  font-size: 0.75rem; color: var(--text-secondary); width: 130px; min-width: 130px;
+  text-align: right; font-family: var(--font-mono); flex-shrink: 0;
 }
 .bar-track {
   flex: 1; height: 28px; background: var(--bg-elevated); border-radius: 6px;
@@ -518,7 +518,7 @@ footer .logo img { height: 18px; opacity: 0.5; }
   footer { flex-direction: column; gap: 1rem; text-align: center; }
   .author-card { flex-direction: column; text-align: center; }
   .tps-controls { flex-wrap: wrap; }
-  .bar-label { min-width: 70px; font-size: 0.65rem; }
+  .bar-label { width: 100px; min-width: 100px; font-size: 0.65rem; }
 }
 </style>
 </head>
@@ -552,7 +552,7 @@ footer .logo img { height: 18px; opacity: 0.5; }
   <div class="hero-meta">
     <div class="avatar" style="background: var(--gradient); display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--bg);">A</div>
     <div class="meta-text">
-      <div class="author">Audria Research</div>
+      <div class="author">Audria Research — Shubham Mishra, Pranay Jain, Kenny Miller</div>
       <div class="date">November 2025</div>
     </div>
     <div class="meta-divider"></div>
@@ -653,58 +653,93 @@ footer .logo img { height: 18px; opacity: 0.5; }
 
   <p class="reveal">In parallel, the AI research community has made extraordinary progress in compressing intelligence into smaller models. What once required hundreds of billions of parameters and a data center can now be approximated by models that fit comfortably on a phone.</p>
 
-  <!-- SLM Capability Chart -->
+  <!-- AAII Intelligence Index Chart -->
   <div class="bar-chart reveal">
-    <h4>🧠 Small Model Intelligence vs. Previous Cloud SOTA</h4>
-    <div class="chart-subtitle">MMLU benchmark scores (higher is better), showing SLMs catching up to GPT-4 class models</div>
+    <h4>🧠 Small Model Intelligence: Artificial Analysis Intelligence Index</h4>
+    <div class="chart-subtitle">AAII score (composite of popular benchmarks, higher is better), May 2024 to Apr 2025. Cloud models in purple, on-device-class SLMs in green.</div>
 
     <div class="bar-row">
-      <span class="bar-label">GPT-3.5 (2022)</span>
-      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 81.4%;"><span class="bar-value">70.0</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">GPT-4o</span>
+      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 87.2%;"><span class="bar-value">41</span></div></div>
+      <span class="bar-value-outside">May '24</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Llama-7B (2023)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 41.2%;"><span class="bar-value">35.1</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Llama 3.1 8B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 51.1%;"><span class="bar-value">24</span></div></div>
+      <span class="bar-value-outside">Jul '24</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Phi-2 2.7B (2023)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 65.8%;"><span class="bar-value">56.3</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Llama 3.1 70B</span>
+      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 74.5%;"><span class="bar-value">35</span></div></div>
+      <span class="bar-value-outside">Jul '24</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">GPT-4 (2023)</span>
-      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 100%;"><span class="bar-value">86.4</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Llama 3.2 1B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 21.3%;"><span class="bar-value">10</span></div></div>
+      <span class="bar-value-outside">Sep '24</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Phi-3 Mini 3.8B (2024)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 80.4%;"><span class="bar-value">69.2</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Llama 3.2 3B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 42.6%;"><span class="bar-value">20</span></div></div>
+      <span class="bar-value-outside">Sep '24</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Gemma 2 2B (2024)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 61.8%;"><span class="bar-value">53.0</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Phi-4 Mini 3.8B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 55.3%;"><span class="bar-value">26</span></div></div>
+      <span class="bar-value-outside">Feb '25</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Qwen 2.5 3B (2024)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 84.2%;"><span class="bar-value">72.2</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Phi-4 14B</span>
+      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 85.1%;"><span class="bar-value">40</span></div></div>
+      <span class="bar-value-outside">Feb '25</span>
     </div>
     <div class="bar-row">
-      <span class="bar-label">Phi-4 Mini 3.8B (2025)</span>
-      <div class="bar-track"><div class="bar-fill" style="width: 88.4%;"><span class="bar-value">76.0</span></div></div>
-      <span class="bar-value-outside"></span>
+      <span class="bar-label">Gemma 3 4B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 51.1%;"><span class="bar-value">24</span></div></div>
+      <span class="bar-value-outside">Mar '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Gemma 3 12B</span>
+      <div class="bar-track"><div class="bar-fill purple-fill" style="width: 72.3%;"><span class="bar-value">34</span></div></div>
+      <span class="bar-value-outside">Mar '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 0.6B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 36.2%;"><span class="bar-value">17</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 0.6B 🧠</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 48.9%;"><span class="bar-value">23</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 1.7B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 53.2%;"><span class="bar-value">25</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 1.7B 🧠</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 80.9%;"><span class="bar-value">38</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 4B</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 74.5%;"><span class="bar-value">35</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Qwen3 4B 🧠</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 100%;"><span class="bar-value">47</span></div></div>
+      <span class="bar-value-outside">Apr '25</span>
     </div>
   </div>
 
-  <p class="reveal">A 3.8B parameter model in 2025 now surpasses GPT-3.5 level performance and approaches GPT-4 on many tasks. These models run on-device in real time. Three years ago, this was science fiction.</p>
+  <p class="reveal">A 4B parameter model with reasoning in April 2025 now <strong>exceeds GPT-4o</strong> on the composite intelligence index. A 1.7B model with reasoning matches Llama 3.1 70B. These models run on-device in real time. A year ago, this was unthinkable.</p>
 
   <div class="callout reveal">
     <div class="callout-header">💡 The Convergence</div>
-    <p>When you combine 38 TOPS of dedicated AI silicon with models that pack GPT-3.5+ intelligence into 3 billion parameters, you get something new: a phone that can genuinely think. Not in the cloud, not with a round trip. Right there in your hand. That is why we are building this now.</p>
+    <p>When you combine 38 TOPS of dedicated AI silicon with sub-4B parameter models that match or exceed GPT-4o on composite benchmarks, you get something new: a phone that can genuinely think. Not in the cloud, not with a round trip. Right there in your hand. That is why we are building this now.</p>
   </div>
 
   <hr class="divider">
@@ -1055,7 +1090,7 @@ involves two people discussing...</pre>
   <div class="author-card reveal">
     <div class="author-avatar" style="background: var(--gradient); display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:var(--bg);">A</div>
     <div class="author-info">
-      <h4>Audria Research</h4>
+      <h4>Audria Research — Shubham Mishra, Pranay Jain, Kenny Miller</h4>
       <p>Building the voice-first future of personal computing. We make ambient intelligence that disappears, so you can be present.</p>
     </div>
   </div>
