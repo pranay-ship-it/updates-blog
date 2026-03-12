@@ -102,15 +102,18 @@
     }
 
     .nav-logo {
-      font-family: var(--font-sans);
-      font-weight: 600;
-      font-size: 1rem;
-      letter-spacing: -0.01em;
-      background: var(--gradient-text);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      display: flex;
+      align-items: center;
       text-decoration: none;
+      border-bottom: none;
+    }
+
+    .nav-logo img {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      border-bottom: none;
     }
 
     .nav-links {
@@ -553,7 +556,7 @@
 
 <!-- Navigation -->
 <nav>
-  <a class="nav-logo" href="#problem">audria</a>
+  <a class="nav-logo" href="#problem"><img src="../../logos/Audria Logo.svg" alt="Audria"></a>
   <ul class="nav-links">
     <li><span class="nav-tag">Research</span></li>
     <li><a href="#problem">Problem</a></li>
