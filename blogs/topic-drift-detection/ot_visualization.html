@@ -10,7 +10,7 @@
     background:#0d1117;color:#c9d1d9;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
     display:flex;flex-direction:column;align-items:center;
-    min-height:100vh;padding:28px 16px;
+    height:100vh;padding:28px 16px;overflow:hidden;
   }
   h1{font-size:1.5rem;font-weight:600;color:#e6edf3;margin-bottom:4px;letter-spacing:-0.02em}
   .subtitle{font-size:0.82rem;color:#8b949e;margin-bottom:20px}
@@ -100,8 +100,8 @@
     <input type="range" id="speedSlider" min="0.3" max="3" step="0.1" value="1">
   </div>
   <div id="compToggle" class="comparison-toggle" style="display:none">
-    <button class="comp-btn active" data-comp="same">Same Theme</button>
-    <button class="comp-btn" data-comp="diff">Different Theme</button>
+    <button class="comp-btn" data-comp="same">Same Theme</button>
+    <button class="comp-btn active" data-comp="diff">Different Theme</button>
   </div>
 </div>
 
@@ -109,10 +109,6 @@
   <div class="metric">
     <span class="metric-label">Wasserstein Distance:</span>
     <span class="metric-value blue" id="wDist">—</span>
-  </div>
-  <div class="metric">
-    <span class="metric-label">Transport Cost:</span>
-    <div class="cost-bar-wrap"><div class="cost-bar" id="costBar"></div></div>
   </div>
   <div class="metric" id="centroidMetric" style="display:none">
     <span class="metric-label">Centroid Distance:</span>
@@ -134,6 +130,31 @@ ctx.scale(2, 2);
 
 const MONO = "'SF Mono','Fira Code','Consolas','Courier New',monospace";
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+
+// ─── Helper: Update Wasserstein Distance with Color ────────────────────
+function updateWDist(value, maxRef = 0.12) {
+  const el = document.getElementById('wDist');
+  if (value === null || value === undefined) {
+    el.textContent = '—';
+    el.className = 'metric-value blue';
+  } else {
+    el.textContent = value.toFixed(4);
+    el.classList.remove('blue', 'orange', 'red');
+    // Color thresholds: red if > 60% of max, orange if > 30%, blue otherwise
+    if (value > maxRef * 0.6) {
+      el.classList.add('red');
+    } else if (value > maxRef * 0.3) {
+      el.classList.add('orange');
+    } else {
+      el.classList.add('blue');
+    }
+  }
+}
+
+// Add red color style
+const style = document.createElement('style');
+style.textContent = '.metric-value.red { color: #f85149 !important; }';
+document.head.appendChild(style);
 
 // ─── Scene Data ──────────────────────────────────────────────────────
 const SCENES = {
@@ -198,7 +219,7 @@ const CENTROID_SCENES = {
 
 // ─── State ───────────────────────────────────────────────────────────
 let state = {
-  mode: '1d', comp: 'same',
+  mode: '1d', comp: 'diff',
   playing: false, progress: 0, speed: 1,
   hovered: null,
 };
@@ -584,10 +605,7 @@ function render1D() {
 
   // Update UI
   const displayCost = p >= 0.9 ? totalCost1D : accCost;
-  document.getElementById('wDist').textContent = p > 0 ? displayCost.toFixed(4) : '—';
-  const costBar = document.getElementById('costBar');
-  costBar.style.width = (displayCost / (totalCost1D * 1.1) * 100) + '%';
-  costBar.style.background = '#f0883e';
+  updateWDist(p > 0 ? displayCost : null, totalCost1D * 1.1);
 }
 
 // ─── RENDER: 2D Scene Transport ──────────────────────────────────────
@@ -752,11 +770,8 @@ function render2D() {
 
   // Update UI
   const displayCost = p >= 0.9 ? result.totalCost : accCost;
-  document.getElementById('wDist').textContent = p > 0 ? displayCost.toFixed(4) : '—';
-  const costBar = document.getElementById('costBar');
   const maxRef = state.comp === 'same' ? 0.035 : 0.12;
-  costBar.style.width = Math.min(displayCost / maxRef * 100, 100) + '%';
-  costBar.style.background = displayCost > maxRef*0.6 ? '#f85149' : displayCost > maxRef*0.3 ? '#f0883e' : '#3fb950';
+  updateWDist(p > 0 ? displayCost : null, maxRef);
 }
 
 // ─── RENDER: Centroid Comparison ─────────────────────────────────────
@@ -899,10 +914,7 @@ function renderCentroid() {
 
     // Formula
     const showOT = otP >= 0.9 ? result.totalCost : accCost;
-    document.getElementById('wDist').textContent = showOT.toFixed(4);
-    const costBar = document.getElementById('costBar');
-    costBar.style.width = Math.min(showOT/0.12*100,100)+'%';
-    costBar.style.background = '#bc8cff';
+    updateWDist(showOT, 0.12);
 
     // ─── Formula Panel ────────────────────────────────────────────────
     const fmY=460,fmH=105,fmX=60,fmW=W-120;
@@ -997,8 +1009,7 @@ function resetState() {
   prev1DLanded = new Set(); prev2DLanded = new Set(); prevCentroidLanded = new Set();
   landingBursts = [];
   document.getElementById('playBtn').textContent = '▶ Play';
-  document.getElementById('wDist').textContent = '—';
-  document.getElementById('costBar').style.width = '0%';
+  updateWDist(null);
   document.getElementById('cDist').textContent = '—';
 }
 
