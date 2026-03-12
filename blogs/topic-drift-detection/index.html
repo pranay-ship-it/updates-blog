@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detecting Topic Drift in Conversations — Audria Research</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$']],
+        displayMath: [['$$', '$$']],
+        packages: {'[+]': ['boldsymbol']},
+        tags: 'none'
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+      chtml: { scale: 1.05, minScale: 0.6 }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg-primary:    #06060a;
+      --bg-elevated:   #0d0d14;
+      --bg-card:       #111118;
+      --bg-card-hover: #16161f;
+
+      --text-primary:   #f0f0f5;
+      --text-secondary: #9d9db5;
+      --text-muted:     #5c5c78;
+
+      --accent-green:       #15BF84;
+      --accent-green-dim:   rgba(21,191,132,0.12);
+      --accent-green-glow:  rgba(21,191,132,0.06);
+      --accent-purple:      #B850FD;
+      --accent-purple-dim:  rgba(184,80,253,0.12);
+
+      --border:        #1e1e2a;
+      --border-subtle: #14141e;
+
+      --gradient: linear-gradient(135deg, #15BF84 0%, #B850FD 100%);
+      --gradient-text: linear-gradient(135deg, #15BF84 0%, #4DD4A8 30%, #8B6FE0 70%, #B850FD 100%);
+
+      --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+
+      --max-width:   820px;
+      --read-width:  680px;
+      --radius-sm:   5px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 17px; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-weight: 400;
+      line-height: 1.85;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Progress bar ───────────────────────────────────────── */
+    #progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 2px;
+      width: 0%;
+      background: var(--gradient);
+      z-index: 1000;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Nav ────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(6,6,10,0.8);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--accent-green);
+      background: var(--accent-green-dim);
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(21,191,132,0.2);
+    }
+
+    /* ── Hero ────────────────────────────────────────────────── */
+    .hero {
+      padding: 120px 2rem 64px;
+      max-width: var(--max-width);
+      margin: 0 auto;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .tag-green {
+      color: var(--accent-green);
+      background: var(--accent-green-dim);
+      border: 1px solid rgba(21,191,132,0.2);
+    }
+
+    .tag-purple {
+      color: var(--accent-purple);
+      background: var(--accent-purple-dim);
+      border: 1px solid rgba(184,80,253,0.2);
+    }
+
+    .hero-date {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 .gradient-word {
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-green-dim), var(--accent-purple-dim), transparent);
+      border: none;
+      margin-bottom: 0;
+    }
+
+    /* ── Article layout ─────────────────────────────────────── */
+    article {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 2rem 6rem;
+    }
+
+    /* ── Section headings ───────────────────────────────────── */
+    .section-block {
+      padding-top: 3.5rem;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: 1.9rem;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 1.25rem;
+      padding-top: 1rem;
+    }
+
+    .section-number {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-green);
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin: 2.5rem 0 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Body text ──────────────────────────────────────────── */
+    p {
+      color: var(--text-primary);
+      font-size: 1.0625rem;
+      line-height: 1.85;
+      margin-bottom: 1.25rem;
+    }
+
+    p em {
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    strong { color: var(--text-primary); font-weight: 600; }
+
+    a {
+      color: var(--accent-green);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(21,191,132,0.3);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    a:hover { border-color: var(--accent-green); }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 3rem 0;
+    }
+
+    /* ── Inline code ────────────────────────────────────────── */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: var(--bg-card);
+      color: var(--accent-green);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Math display blocks ─────────────────────────────────── */
+    .math-block {
+      overflow-x: auto;
+      padding: 1.5rem 1.75rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-green);
+      border-radius: var(--radius-md);
+      margin: 1.75rem 0;
+      font-size: 1rem;
+    }
+
+    /* Inline MathJax rendered spans */
+    mjx-container[jax="CHTML"][display="true"] {
+      overflow-x: auto;
+      padding: 0.25rem 0;
+    }
+
+    /* ── Tables ─────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 2rem 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: var(--bg-card);
+    }
+
+    thead tr {
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    td:first-child { color: var(--text-secondary); font-weight: 500; }
+
+    tr:hover td { background: var(--bg-card-hover); }
+
+    /* ── Callout / highlight ────────────────────────────────── */
+    .callout {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-purple);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .callout p { margin-bottom: 0; color: var(--text-secondary); font-size: 0.975rem; }
+    .callout strong { color: var(--text-primary); }
+
+    /* ── Illustration placeholder ────────────────────────────── */
+    .illustration {
+      margin: 2.5rem 0;
+      border: 1px dashed rgba(21,191,132,0.3);
+      border-radius: var(--radius-lg);
+      background: var(--accent-green-glow);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .illustration-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-green);
+      background: var(--accent-green-dim);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(21,191,132,0.25);
+      margin-bottom: 1rem;
+    }
+
+    .illustration-label.interactive {
+      color: var(--accent-purple);
+      background: var(--accent-purple-dim);
+      border-color: rgba(184,80,253,0.25);
+    }
+
+    .illustration-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+      opacity: 0.6;
+    }
+
+    .illustration-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .illustration-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── Section divider with label ─────────────────────────── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 3.5rem 0 2rem;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-divider span {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── References ─────────────────────────────────────────── */
+    .references {
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .references h2 {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .references ol {
+      padding-left: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .references li {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── Conclusion card ────────────────────────────────────── */
+    .conclusion-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-top: 3.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .conclusion-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--gradient);
+    }
+
+    .conclusion-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+      padding-top: 0;
+    }
+
+    .conclusion-card p { color: var(--text-secondary); }
+    .conclusion-card p:last-child { margin-bottom: 0; }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    footer span {
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+
+    /* ── Fade-in animation ──────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { animation: fadeUp 0.6s ease both; }
+    article { animation: fadeUp 0.6s 0.1s ease both; }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .hero, article { padding-left: 1.25rem; padding-right: 1.25rem; }
+      h2 { font-size: 1.5rem; }
+      .conclusion-card { padding: 1.75rem; }
+      .math-block { padding: 1rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Reading progress bar -->
+<div id="progress"></div>
+
+<!-- Navigation -->
+<nav>
+  <a class="nav-logo" href="#problem">audria</a>
+  <ul class="nav-links">
+    <li><span class="nav-tag">Research</span></li>
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#formalization">Formalization</a></li>
+    <li><a href="#signal">Signal</a></li>
+    <li><a href="#signal-design">Design</a></li>
+    <li><a href="#detection">Detection</a></li>
+    <li><a href="#scene-distance">Scenes</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div style="margin-bottom:14px;"><span class="tag tag-green">NLP Engineering</span></div>
+  <h1>Detecting Topic <span class="gradient-word">Drift</span> in Conversations</h1>
+  <p class="hero-sub">From cost signals and drift detectors to Earth Mover's Distance — how we built a pipeline that listens for when a conversation changes direction.</p>
+  <div class="hero-meta">
+    <div class="avatar" style="background: var(--gradient); width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--bg);">A</div>
+    <div class="meta-text">
+      <div class="author">Audria Research — Raghav Jain, Shubham Mishra</div>
+      <div class="date">March 2026</div>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="reading-time">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+      18 min read
+    </div>
+  </div>
+  <hr class="hero-divider" />
+</header>
+
+<!-- Article -->
+<article>
+
+  <!-- ── Section 1 ── -->
+  <div class="section-block" id="problem">
+    <span class="section-number">01 — The Problem</span>
+    <h2>Topic Change, Not Topic Detection</h2>
+
+    <p>Conversations are not documents. A document sits still. You can read it at any speed, in any order, index it, search it. A conversation unfolds in time. One utterance at a time. One topic bleeding into the next, with no chapter headings or paragraph breaks to announce where one idea ends and another begins.</p>
+
+    <p>The question worth asking is not <em>what topics exist here</em>. It is <em>when does the topic change</em>.</p>
+
+    <p>At any topic boundary, there is a detectable signal: the semantic similarity between what is being said <em>now</em> and what was said <em>just before</em> drops sharply. The conversation "dips" in similarity. The goal is to detect those dips automatically, in real time, without any labeled data.</p>
+
+    <p>This is what <strong>dip detection</strong> means in this context.</p>
+  </div>
+
+  <hr />
+
+  <!-- ── Section 2 ── -->
+  <div class="section-block" id="formalization">
+    <span class="section-number">02 — Formalization</span>
+    <h2>Formalizing the Problem</h2>
+
+    <p>Think of a conversation (a podcast, an interview, a meeting) as a sequence of utterances. An utterance is a chunk of speech transcribed over a small time interval: a thought, a sentence or two, a response. Strung together, these utterances form segments. Each segment discusses a coherent topic (one stretch about climate policy, the next about economics, another about space exploration).</p>
+
+    <p>If you had the entire conversation in front of you, embedded all utterances into a semantic space, and looked at them as a cloud of points, you'd see the structure clearly: utterances within the same topic cluster together. Different topics occupy different regions. Boundaries between topics appear naturally as gaps between clusters.</p>
+
+    <p>But that's the offline view. You're looking at the full picture at once.</p>
+
+    <p>In reality, a conversation unfolds in real time. Utterances arrive one at a time. When the newest utterance arrives, you don't know what comes next. You have to decide, in the moment: is this utterance still part of the current topic, or has the conversation just shifted direction?</p>
+
+    <p>The challenge is this: <strong>how do you detect that shift without seeing the full picture?</strong></p>
+
+    <p>The answer is to stop thinking about individual utterances and start thinking about patterns. Each topic has a characteristic pattern: the directions its utterances point in semantic space. When you're in the climate segment, utterances cluster around climate concepts. When you shift to economics, the pattern changes. The new utterances point in different semantic directions.</p>
+
+    <p>So you track: what is the typical pattern I've been seeing? When does a new utterance deviate sharply from that pattern?</p>
+
+    <p>This is the essence of the problem. Formally, we're asking: given a stream of utterances arriving one at a time, each mapped to a semantic embedding, <strong>when does the underlying distribution of those embeddings change?</strong></p>
+
+    <p>Let's define the terms precisely. An utterance $u_t$ at time $t$ is mapped to an embedding $e_t$, a dense vector in semantic space. A segment is a sequence of consecutive utterances that belong to the same topic:</p>
+
+    <div class="math-block">$$\text{Segment} = \{u_1, u_2, \ldots, u_n\}$$</div>
+
+    <p>Each segment forms a distribution, a cloud of embeddings scattered across semantic space. The goal is to find the boundaries $\mathcal{B}$ where the distribution changes. Wherever a boundary exists, the stream before that point and the stream after are semantically different enough to be recognizable.</p>
+
+    <p>This is the <strong>online change point detection</strong> problem—a well-studied challenge in statistics and signal processing for detecting shifts in streaming data. We're adapting it to the semantic embedding stream of a conversation.</p>
+
+    <p>The pipeline becomes: Utterances → Embeddings → Pattern recognition → Boundary detection.</p>
+  </div>
+
+  <hr />
+
+  <!-- ── Section 3 ── -->
+  <div class="section-block" id="signal">
+    <span class="section-number">03 — Signal Construction</span>
+    <h2>From Text to a Detectable Signal</h2>
+
+    <h3>Sentence Embeddings</h3>
+
+    <p>Each utterance is embedded using a sentence transformer (specifically <code>all-MiniLM-L6-v2</code>) which produces a single 384-dimensional dense vector per utterance. The model places semantically similar utterances close together in the embedding space, regardless of surface vocabulary. <em>"The market collapsed"</em> and <em>"equities fell sharply"</em> land near each other; <em>"it started raining"</em> lands far from both.</p>
+
+    <p>After embedding, all vectors are L2-normalized:</p>
+
+    <div class="math-block">$$\hat{e}_t = \frac{e_t}{\|e_t\|}$$</div>
+
+    <p>For unit-norm vectors, the dot product is equivalent to cosine similarity:</p>
+
+    <div class="math-block">$$\hat{e}_i \cdot \hat{e}_j = \cos(\theta_{ij})$$</div>
+
+    <p>This normalization step at the output of the embedding model has a practical consequence that compounds across the entire pipeline: every similarity computation anywhere downstream (cost signals, scene comparisons, centroid distances) reduces to a plain dot product. No normalization factor, no division, no separate norm computation. In a streaming setting where each new utterance triggers comparisons against a growing history, that reduction is what makes real-time processing tractable.</p>
+
+    <h3>The Cost Signal</h3>
+
+    <p>A drift detector operates on a scalar stream, not a 384-dimensional one. The embedding sequence needs to be reduced to a single number per timestep that encodes <em>how semantically surprising this utterance is given what came before</em>.</p>
+
+    <p>That number is the <strong>cost signal</strong>.</p>
+
+    <p>Think of it as a semantic temperature reading: low and flat while the conversation holds a topic, spiking when the speaker moves somewhere new. The word <em>signal</em> is deliberate. It is a time-indexed sequence of values, like a price signal or a sensor reading, except what it encodes is the semantic friction at each step of the conversation.</p>
+
+    <p>The baseline definition:</p>
+
+    <div class="math-block">$$c_t = 1 - \cos(\hat{e}_t,\ \hat{e}_{t-1}) = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$$</div>
+
+    <p>When consecutive utterances are semantically similar, $c_t$ is close to 0. When they diverge, $c_t$ rises toward 1. The scalar stream $\{c_t\}$ is what every drift detector in this pipeline consumes.</p>
+
+    <!-- ── Illustration A: Interactive ── -->
+    <div class="illustration" style="padding: 2rem 1.5rem 1.5rem; text-align: left;">
+      <div class="illustration-title" style="margin-bottom: 1.2rem;">Embedding Angle → Cost Value</div>
+
+      <!-- Sentence pair selector -->
+      <div id="pair-buttons" style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem;">
+        <button class="pair-btn active" data-idx="0">Same topic</button>
+        <button class="pair-btn" data-idx="1">Related topics</button>
+        <button class="pair-btn" data-idx="2">Unrelated topics</button>
+        <button class="pair-btn" data-idx="3">Hard shift</button>
+      </div>
+
+      <!-- Sentence display -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: rgba(21,191,132,0.07); border: 1px solid rgba(21,191,132,0.25); border-radius: 8px; padding: 0.9rem 1rem;">
+          <div style="font-size: 0.7rem; color: var(--accent-green); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">u<sub>t−1</sub></div>
+          <div id="sent-a" style="font-size: 0.9rem; color: var(--text-primary); line-height: 1.5;"></div>
+        </div>
+        <div style="background: rgba(184,80,253,0.07); border: 1px solid rgba(184,80,253,0.25); border-radius: 8px; padding: 0.9rem 1rem;">
+          <div style="font-size: 0.7rem; color: var(--accent-purple); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">u<sub>t</sub></div>
+          <div id="sent-b" style="font-size: 0.9rem; color: var(--text-primary); line-height: 1.5;"></div>
+        </div>
+      </div>
+
+      <!-- SVG vector diagram + cost readout side by side -->
+      <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
+        <svg id="vec-svg" width="220" height="220" viewBox="0 0 220 220" style="flex-shrink: 0;">
+          <!-- Grid hint -->
+          <circle cx="110" cy="110" r="80" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <circle cx="110" cy="110" r="40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <!-- Axes -->
+          <line x1="110" y1="30" x2="110" y2="190" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <line x1="30" y1="110" x2="190" y2="110" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <!-- Arc for angle θ -->
+          <path id="angle-arc" d="" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <!-- Vector A (green) -->
+          <line id="vec-a-line" x1="110" y1="110" x2="110" y2="110" stroke="#15BF84" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon id="vec-a-arrow" points="0,0" fill="#15BF84"/>
+          <!-- Vector B (purple) -->
+          <line id="vec-b-line" x1="110" y1="110" x2="110" y2="110" stroke="#B850FD" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon id="vec-b-arrow" points="0,0" fill="#B850FD"/>
+          <!-- θ label -->
+          <text id="theta-label" x="110" y="110" fill="rgba(255,255,255,0.5)" font-size="12" font-family="serif" text-anchor="middle" dominant-baseline="middle">θ</text>
+          <!-- Vector labels -->
+          <text id="label-a" x="0" y="0" fill="#15BF84" font-size="11" font-family="monospace" font-weight="600">ê<tspan baseline-shift="sub" font-size="8">t−1</tspan></text>
+          <text id="label-b" x="0" y="0" fill="#B850FD" font-size="11" font-family="monospace" font-weight="600">ê<tspan baseline-shift="sub" font-size="8">t</tspan></text>
+        </svg>
+
+        <!-- Readout panel -->
+        <div style="flex: 1; min-width: 160px;">
+          <div style="margin-bottom: 1.2rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem;">angle θ</div>
+            <div id="readout-angle" style="font-size: 2rem; font-family: var(--font-mono); color: var(--text-primary); font-weight: 600; transition: color 0.4s;">—</div>
+          </div>
+          <div style="margin-bottom: 1.2rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem;">cos(θ)</div>
+            <div id="readout-cos" style="font-size: 1.4rem; font-family: var(--font-mono); color: var(--text-secondary); transition: color 0.4s;">—</div>
+          </div>
+          <div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem;">cost c<sub>t</sub> = 1 − cos(θ)</div>
+            <div id="readout-cost" style="font-size: 2rem; font-family: var(--font-mono); font-weight: 700; transition: color 0.4s;">—</div>
+            <!-- Cost bar -->
+            <div style="margin-top: 0.6rem; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; width: 100%; max-width: 180px;">
+              <div id="cost-bar" style="height: 100%; width: 0%; border-radius: 3px; transition: width 0.6s ease, background 0.4s ease;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 1.2rem; margin-bottom: 0;">
+        Unit vectors ê<sub>t−1</sub> and ê<sub>t</sub> live on the unit circle after L2 normalization. The cost is the angular gap between them: zero when the conversation holds a topic, rising toward 1 on a shift.
+      </p>
+    </div>
+
+    <style>
+      .pair-btn {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text-secondary);
+        padding: 0.4rem 0.9rem;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .pair-btn:hover {
+        border-color: rgba(21,191,132,0.4);
+        color: var(--text-primary);
+      }
+      .pair-btn.active {
+        background: rgba(21,191,132,0.12);
+        border-color: #15BF84;
+        color: #15BF84;
+      }
+    </style>
+
+    <script>
+    (function() {
+      const PAIRS = [
+        {
+          label: "Same topic",
+          a: "The carbon tax policy was extended through 2030.",
+          b: "Emissions reduction targets were revised upward last quarter.",
+          cosVal: 0.91,
+        },
+        {
+          label: "Related topics",
+          a: "Renewable energy investment hit a record high this year.",
+          b: "Solar panel efficiency has improved significantly in the last decade.",
+          cosVal: 0.74,
+        },
+        {
+          label: "Unrelated topics",
+          a: "The central bank raised interest rates by 25 basis points.",
+          b: "The new climate bill passed with bipartisan support.",
+          cosVal: 0.18,
+        },
+        {
+          label: "Hard shift",
+          a: "Scientists discovered a new exoplanet in the habitable zone.",
+          b: "The recipe calls for two cups of flour and one egg.",
+          cosVal: 0.03,
+        },
+      ];
+
+      const CX = 110, CY = 110, R = 78;
+      // Fixed angle for vector A: always points upper-right at 35°
+      const ANGLE_A_DEG = 35;
+
+      function degToRad(d) { return d * Math.PI / 180; }
+
+      function arrowHead(x1, y1, x2, y2, size) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        const ux = dx/len, uy = dy/len;
+        const px = -uy, py = ux;
+        const tip = { x: x2, y: y2 };
+        const b1 = { x: x2 - ux*size + px*(size*0.4), y: y2 - uy*size + py*(size*0.4) };
+        const b2 = { x: x2 - ux*size - px*(size*0.4), y: y2 - uy*size - py*(size*0.4) };
+        return `${tip.x},${tip.y} ${b1.x},${b1.y} ${b2.x},${b2.y}`;
+      }
+
+      function arcPath(angleDeg) {
+        // Draw arc from angle_a to angle_b (for visual θ)
+        const aA = degToRad(-ANGLE_A_DEG); // SVG y-flipped
+        const aB = degToRad(-(ANGLE_A_DEG - angleDeg));
+        const r = 28;
+        const x1 = CX + r * Math.cos(aA);
+        const y1 = CY + r * Math.sin(aA);
+        const x2 = CX + r * Math.cos(aB);
+        const y2 = CY + r * Math.sin(aB);
+        const large = angleDeg > 180 ? 1 : 0;
+        return `M ${CX} ${CY} L ${x1} ${y1} A ${r} ${r} 0 ${large} 0 ${x2} ${y2} Z`;
+      }
+
+      let currentIdx = 0;
+      let animFrame = null;
+      let animStart = null;
+      let fromCos = 0.91;
+      let toCos = 0.91;
+
+      function cosToAngleDeg(c) {
+        return Math.acos(Math.max(-1, Math.min(1, c))) * 180 / Math.PI;
+      }
+
+      function render(cosVal) {
+        const angleDeg = cosToAngleDeg(cosVal);
+        const cost = 1 - cosVal;
+
+        // Angles in SVG coords (y-axis flipped)
+        const aA = degToRad(-ANGLE_A_DEG);
+        const aB = degToRad(-(ANGLE_A_DEG - angleDeg));
+
+        const ax2 = CX + R * Math.cos(aA);
+        const ay2 = CY + R * Math.sin(aA);
+        const bx2 = CX + R * Math.cos(aB);
+        const by2 = CY + R * Math.sin(aB);
+
+        document.getElementById('vec-a-line').setAttribute('x2', ax2);
+        document.getElementById('vec-a-line').setAttribute('y2', ay2);
+        document.getElementById('vec-b-line').setAttribute('x2', bx2);
+        document.getElementById('vec-b-line').setAttribute('y2', by2);
+
+        document.getElementById('vec-a-arrow').setAttribute('points', arrowHead(CX, CY, ax2, ay2, 10));
+        document.getElementById('vec-b-arrow').setAttribute('points', arrowHead(CX, CY, bx2, by2, 10));
+
+        // Labels near tips
+        const labelOffset = 14;
+        document.getElementById('label-a').setAttribute('x', ax2 + (ax2 > CX ? 4 : -18));
+        document.getElementById('label-a').setAttribute('y', ay2 + (ay2 > CY ? 14 : -6));
+        document.getElementById('label-b').setAttribute('x', bx2 + (bx2 > CX ? 4 : -18));
+        document.getElementById('label-b').setAttribute('y', by2 + (by2 > CY ? 14 : -6));
+
+        // Arc
+        document.getElementById('angle-arc').setAttribute('d', arcPath(angleDeg));
+
+        // θ label at midpoint of arc
+        const midAngle = degToRad(-ANGLE_A_DEG + angleDeg / 2);
+        const tR = 38;
+        document.getElementById('theta-label').setAttribute('x', CX + tR * Math.cos(midAngle));
+        document.getElementById('theta-label').setAttribute('y', CY + tR * Math.sin(midAngle));
+
+        // Readouts
+        const costColor = cost < 0.15 ? '#15BF84' : cost < 0.5 ? '#f0c040' : '#B850FD';
+        document.getElementById('readout-angle').textContent = angleDeg.toFixed(1) + '°';
+        document.getElementById('readout-cos').textContent = cosVal.toFixed(3);
+        document.getElementById('readout-cost').textContent = cost.toFixed(3);
+        document.getElementById('readout-cost').style.color = costColor;
+        document.getElementById('readout-angle').style.color = costColor;
+        document.getElementById('cost-bar').style.width = (cost * 100).toFixed(1) + '%';
+        document.getElementById('cost-bar').style.background = costColor;
+      }
+
+      function animate(ts) {
+        if (!animStart) animStart = ts;
+        const elapsed = ts - animStart;
+        const duration = 600;
+        const t = Math.min(elapsed / duration, 1);
+        // ease in-out cubic
+        const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+        const cur = fromCos + (toCos - fromCos) * ease;
+        render(cur);
+        if (t < 1) {
+          animFrame = requestAnimationFrame(animate);
+        }
+      }
+
+      function selectPair(idx) {
+        currentIdx = idx;
+        const pair = PAIRS[idx];
+        document.getElementById('sent-a').textContent = pair.a;
+        document.getElementById('sent-b').textContent = pair.b;
+        document.querySelectorAll('.pair-btn').forEach((btn, i) => {
+          btn.classList.toggle('active', i === idx);
+        });
+        fromCos = parseFloat(document.getElementById('readout-cos').textContent) || PAIRS[0].cosVal;
+        toCos = pair.cosVal;
+        if (animFrame) cancelAnimationFrame(animFrame);
+        animStart = null;
+        animFrame = requestAnimationFrame(animate);
+      }
+
+      document.querySelectorAll('.pair-btn').forEach(btn => {
+        btn.addEventListener('click', () => selectPair(parseInt(btn.dataset.idx)));
+      });
+
+      // Init
+      selectPair(0);
+    })();
+    </script>
+  </div>
+
+  <hr />
+
+  <!-- ── Section 4 ── -->
+  <div class="section-block" id="signal-design">
+    <span class="section-number">04 — Signal Design</span>
+    <h2>The Cost Signal: Three Formulations</h2>
+
+    <p>The formula $c_t = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$ is the baseline, but it was not the only formulation considered. Three candidates were built and evaluated. They represent the actual evolution of thinking on what a cost signal should capture.</p>
+
+    <h3>Formulation 1 — Short-Term Cost</h3>
+
+    <div class="math-block">$$c_t^{\text{short}} = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$$</div>
+
+    <p>Compares only the current utterance to the immediately preceding one. Fast, reactive, instantaneous. Sensitive to any individual utterance that diverges from its neighbor, noisy for rambling or transitional speech, but highly responsive at clean boundaries. This is also the formulation that works in a fully streaming setting: it requires no history beyond a single previous embedding.</p>
+
+    <h3>Formulation 2 — Long-Term Cost</h3>
+
+    <div class="math-block">$$c_t^{\text{long}} = 1 - \frac{1}{K} \sum_{\text{topK in } [t-W,t)} \left(\hat{e}_t \cdot \hat{e}_{t-j}\right)$$</div>
+
+    <p>Rather than comparing to a single predecessor, this compares $\hat{e}_t$ against the top-$K$ most similar embeddings in a lookback window of size $W$. The reasoning: a genuine topic shift should diverge not just from the immediately preceding utterance but from the broader recent context.</p>
+
+    <p>This is smoother and more robust to single-utterance noise. It lags, however. By the time the long-term cost rises enough to trigger a boundary, the conversation is already several utterances deep into the new topic.</p>
+
+    <h3>Formulation 3 — Drift Trend</h3>
+
+    <div class="math-block">$$c_t^{\text{trend}} = 1 - \hat{e}_{t-1} \cdot \frac{\bar{e}_{\text{hist}}}{\|\bar{e}_{\text{hist}}\|}$$</div>
+
+    <p>where $\bar{e}_{\text{hist}} = \frac{1}{|W|}\sum_{j \in W} \hat{e}_j$ is the mean embedding of recent history.</p>
+
+    <p>Rather than asking how different the current utterance is, this asks how much the <em>context itself</em> has been moving — the directional drift of the embedding stream as a whole. Designed to catch slow, gradual thematic migration that neither of the above formulations would catch clearly.</p>
+
+    <!-- ── Illustration B: Interactive ── -->
+    <div class="illustration" style="padding: 2rem 1.5rem 1.5rem; text-align: left;">
+      <div class="illustration-title" style="margin-bottom: 1.2rem;">Three Cost Signal Formulations</div>
+
+      <!-- Toggle buttons -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.2rem; align-items: center;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); margin-right: 0.2rem;">show:</span>
+        <button class="b-sig-btn active" data-sig="short"><span class="b-dot" style="background:#15BF84;"></span>c<sup>short</sup></button>
+        <button class="b-sig-btn active" data-sig="long"><span class="b-dot" style="background:#B850FD;"></span>c<sup>long</sup></button>
+        <button class="b-sig-btn active" data-sig="trend"><span class="b-dot" style="background:#f0b030;"></span>c<sup>trend</sup></button>
+      </div>
+
+      <!-- Chart -->
+      <div style="position: relative; width: 100%;">
+        <canvas id="b-canvas" style="width: 100%; display: block; cursor: crosshair;"></canvas>
+        <div id="b-tooltip" style="position: absolute; display: none; background: rgba(6,6,10,0.94); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0.5rem 0.75rem; font-family: var(--font-mono); font-size: 0.74rem; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); z-index: 10;"></div>
+      </div>
+
+      <!-- Sentence cards -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-top: 1.2rem;">
+        <div style="background: rgba(21,191,132,0.06); border: 1px solid rgba(21,191,132,0.2); border-radius: 8px; padding: 0.8rem 0.9rem;">
+          <div style="font-size: 0.65rem; color: #15BF84; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">Topic 1 · u₀–u₁₂</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"Carbon emissions targets were revised for 2030."</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.8rem 0.9rem;">
+          <div style="font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">Topic 2 · u₁₃–u₂₅</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"Interest rates rose sharply after the Fed announcement."</div>
+        </div>
+        <div style="background: rgba(184,80,253,0.06); border: 1px solid rgba(184,80,253,0.2); border-radius: 8px; padding: 0.8rem 0.9rem;">
+          <div style="font-size: 0.65rem; color: #B850FD; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">Topic 3 · u₂₆–u₃₉</div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"NASA confirmed water ice on the lunar south pole."</div>
+        </div>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0;">
+        Same conversation, three lenses. Short-term spikes exactly at boundaries; long-term lags and decays slowly; drift-trend rises <em>before</em> the shift and captures gradual migration. Hover to inspect values.
+      </p>
+    </div>
+
+    <style>
+      .b-sig-btn {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text-secondary);
+        padding: 0.35rem 0.85rem;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .b-sig-btn.active { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+      .b-sig-btn:not(.active) { opacity: 0.45; }
+      .b-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    </style>
+
+    <script>
+    (function () {
+      // ── Data ────────────────────────────────────────────────────────────
+      // 40 utterances: Topic1 (0-12) | boundary@13 | Topic2 (13-25) | boundary@26 | Topic3 (26-39)
+      const cShort = [
+        0.05, 0.06, 0.08, 0.07, 0.09, 0.06, 0.07, 0.05, 0.08, 0.07, 0.06, 0.08, 0.07, // Topic 1
+        0.82,                                                                              // ← boundary spike
+        0.11, 0.07, 0.09, 0.06, 0.08, 0.07, 0.06, 0.09, 0.07, 0.08, 0.06, 0.07,        // Topic 2
+        0.85,                                                                              // ← boundary spike
+        0.10, 0.08, 0.06, 0.07, 0.09, 0.06, 0.08, 0.07, 0.06, 0.09, 0.07, 0.08, 0.06  // Topic 3
+      ];
+      const cLong = [
+        // Slowly rises within topic, lags boundary, peaks ~3 steps after, decays
+        0.08, 0.09, 0.09, 0.10, 0.10, 0.11, 0.11, 0.12, 0.13, 0.14, 0.16, 0.19, 0.23,
+        0.36,
+        0.52, 0.62, 0.61, 0.57, 0.50, 0.43, 0.36, 0.29, 0.24, 0.21, 0.19, 0.18,
+        0.30,
+        0.46, 0.58, 0.63, 0.61, 0.56, 0.48, 0.40, 0.33, 0.27, 0.23, 0.20, 0.18, 0.17
+      ];
+      const cTrend = [
+        // Rises before boundary (gradual migration), broad hump, falls after new topic settles
+        0.05, 0.06, 0.08, 0.10, 0.13, 0.17, 0.22, 0.27, 0.33, 0.39, 0.44, 0.48, 0.50,
+        0.48,
+        0.40, 0.31, 0.23, 0.17, 0.12, 0.10, 0.10, 0.12, 0.16, 0.21, 0.28, 0.38,
+        0.46,
+        0.50, 0.47, 0.40, 0.31, 0.23, 0.17, 0.13, 0.11, 0.10, 0.11, 0.12, 0.13, 0.14
+      ];
+
+      const SIGS = [
+        { key: 'short', data: cShort, color: '#15BF84', name: 'c<sup>short</sup>' },
+        { key: 'long',  data: cLong,  color: '#B850FD', name: 'c<sup>long</sup>'  },
+        { key: 'trend', data: cTrend, color: '#f0b030', name: 'c<sup>trend</sup>' },
+      ];
+      const BANDS = [
+        { start: 0,    end: 12.5, fill: 'rgba(21,191,132,0.07)',  label: 'Climate Policy' },
+        { start: 12.5, end: 25.5, fill: 'rgba(255,255,255,0.03)', label: 'Economics'      },
+        { start: 25.5, end: 39,   fill: 'rgba(184,80,253,0.07)',  label: 'Space Explor.'  },
+      ];
+      const BAND_COLORS = ['rgba(21,191,132,0.55)', 'rgba(200,200,200,0.3)', 'rgba(184,80,253,0.55)'];
+
+      // ── State ────────────────────────────────────────────────────────────
+      const st = { short: { vis: true, a: 1 }, long: { vis: true, a: 1 }, trend: { vis: true, a: 1 } };
+      let hoverIdx = -1;
+      const animF = {};
+
+      // ── Canvas setup ─────────────────────────────────────────────────────
+      const canvas = document.getElementById('b-canvas');
+      const ctx2   = canvas.getContext('2d');
+      const tooltip = document.getElementById('b-tooltip');
+      const dpr = window.devicePixelRatio || 1;
+      const M = { top: 34, right: 20, bottom: 38, left: 44 };
+      const H = 260;
+      let W = 0;
+
+      function xOf(i) { return M.left + (i / 39) * (W - M.left - M.right); }
+      function yOf(v) { return M.top + (1 - v) * (H - M.top - M.bottom); }
+
+      function resize() {
+        W = canvas.parentElement.clientWidth;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+        canvas.width  = W * dpr;
+        canvas.height = H * dpr;
+        ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      // ── Drawing ───────────────────────────────────────────────────────────
+      function smoothLine(data, color, alpha) {
+        if (alpha < 0.02) return;
+        const pts = data.map((v, i) => ({ x: xOf(i), y: yOf(v) }));
+        ctx2.beginPath();
+        ctx2.moveTo(pts[0].x, pts[0].y);
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[Math.min(pts.length - 1, i + 2)];
+          ctx2.bezierCurveTo(
+            p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+            p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+            p2.x, p2.y
+          );
+        }
+        ctx2.globalAlpha = alpha;
+        ctx2.strokeStyle = color;
+        ctx2.lineWidth   = 2;
+        ctx2.lineJoin    = 'round';
+        ctx2.lineCap     = 'round';
+        ctx2.stroke();
+        ctx2.globalAlpha = 1;
+      }
+
+      function draw() {
+        ctx2.clearRect(0, 0, W, H);
+
+        // Topic background bands
+        BANDS.forEach(b => {
+          ctx2.fillStyle = b.fill;
+          ctx2.fillRect(xOf(b.start), M.top, xOf(b.end) - xOf(b.start), H - M.top - M.bottom);
+        });
+
+        // Horizontal grid
+        [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+          ctx2.beginPath();
+          ctx2.strokeStyle = 'rgba(255,255,255,0.06)';
+          ctx2.lineWidth = 1;
+          ctx2.moveTo(M.left, yOf(v));
+          ctx2.lineTo(W - M.right, yOf(v));
+          ctx2.stroke();
+        });
+
+        // Topic boundary dashed lines
+        [12.5, 25.5].forEach(bi => {
+          ctx2.beginPath();
+          ctx2.setLineDash([4, 4]);
+          ctx2.strokeStyle = 'rgba(255,255,255,0.18)';
+          ctx2.lineWidth = 1;
+          ctx2.moveTo(xOf(bi), M.top);
+          ctx2.lineTo(xOf(bi), H - M.bottom);
+          ctx2.stroke();
+          ctx2.setLineDash([]);
+        });
+
+        // Topic labels at top of bands
+        BANDS.forEach((b, i) => {
+          const midX = (xOf(b.start) + xOf(b.end)) / 2;
+          ctx2.fillStyle = BAND_COLORS[i];
+          ctx2.font = '10px monospace';
+          ctx2.textAlign = 'center';
+          ctx2.fillText(b.label, midX, M.top - 10);
+        });
+
+        // Hover vertical line
+        if (hoverIdx >= 0) {
+          ctx2.beginPath();
+          ctx2.strokeStyle = 'rgba(255,255,255,0.12)';
+          ctx2.lineWidth = 1;
+          ctx2.moveTo(xOf(hoverIdx), M.top);
+          ctx2.lineTo(xOf(hoverIdx), H - M.bottom);
+          ctx2.stroke();
+        }
+
+        // Signal lines
+        SIGS.forEach(s => smoothLine(s.data, s.color, st[s.key].a));
+
+        // Hover dots
+        if (hoverIdx >= 0) {
+          SIGS.forEach(s => {
+            const a = st[s.key].a;
+            if (a < 0.1) return;
+            ctx2.beginPath();
+            ctx2.arc(xOf(hoverIdx), yOf(s.data[hoverIdx]), 4.5, 0, Math.PI * 2);
+            ctx2.fillStyle = s.color;
+            ctx2.globalAlpha = a;
+            ctx2.fill();
+            ctx2.globalAlpha = 1;
+          });
+        }
+
+        // Axes
+        ctx2.beginPath();
+        ctx2.strokeStyle = 'rgba(255,255,255,0.14)';
+        ctx2.lineWidth = 1;
+        ctx2.moveTo(M.left, M.top);
+        ctx2.lineTo(M.left, H - M.bottom);
+        ctx2.lineTo(W - M.right, H - M.bottom);
+        ctx2.stroke();
+
+        // Y-axis labels
+        ctx2.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx2.font = '10px monospace';
+        ctx2.textAlign = 'right';
+        [0, 0.5, 1.0].forEach(v => ctx2.fillText(v.toFixed(1), M.left - 6, yOf(v) + 4));
+
+        // X label
+        ctx2.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx2.textAlign = 'center';
+        ctx2.fillText('utterance  t  →', W / 2, H - 8);
+      }
+
+      // ── Toggle + fade ─────────────────────────────────────────────────────
+      function fadeSignal(key) {
+        const target = st[key].vis ? 1 : 0;
+        if (animF[key]) cancelAnimationFrame(animF[key]);
+        function step() {
+          const diff = target - st[key].a;
+          if (Math.abs(diff) < 0.02) { st[key].a = target; draw(); return; }
+          st[key].a += diff * 0.14;
+          draw();
+          animF[key] = requestAnimationFrame(step);
+        }
+        animF[key] = requestAnimationFrame(step);
+      }
+
+      document.querySelectorAll('.b-sig-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.sig;
+          st[k].vis = !st[k].vis;
+          btn.classList.toggle('active', st[k].vis);
+          fadeSignal(k);
+        });
+      });
+
+      // ── Hover tooltip ─────────────────────────────────────────────────────
+      canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        hoverIdx = Math.max(0, Math.min(39, Math.round((mx - M.left) / (W - M.left - M.right) * 39)));
+
+        let html = `<div style="color:rgba(255,255,255,0.45);margin-bottom:0.35rem;">u<sub>${hoverIdx}</sub></div>`;
+        SIGS.forEach(s => {
+          if (st[s.key].a < 0.1) return;
+          html += `<div style="display:flex;align-items:center;gap:0.45rem;margin-bottom:0.15rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${s.color};display:inline-block;flex-shrink:0;"></span>
+            <span style="color:rgba(255,255,255,0.45);">${s.name.replace(/<[^>]+>/g, '')}</span>
+            <span style="color:${s.color};margin-left:auto;padding-left:1rem;font-weight:600;">${s.data[hoverIdx].toFixed(3)}</span>
+          </div>`;
+        });
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+
+        const tw = tooltip.offsetWidth || 140;
+        const tx = mx + 14 + tw > W ? mx - tw - 8 : mx + 14;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top  = Math.max(4, e.clientY - rect.top - 50) + 'px';
+        draw();
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        hoverIdx = -1;
+        tooltip.style.display = 'none';
+        draw();
+      });
+
+      // ── Responsive ────────────────────────────────────────────────────────
+      new ResizeObserver(resize).observe(canvas.parentElement);
+      resize();
+    })();
+    </script>
+  </div>
+
+  <hr />
+
+  <!-- ── Section 5 ── -->
+  <div class="section-block" id="detection">
+    <span class="section-number">05 — Detection</span>
+    <h2>Drift Detection Algorithms</h2>
+
+    <p>With a scalar cost signal $\{c_t\}$ in hand, the remaining task is distinguishing genuine distribution shifts from random fluctuation. Two algorithms from the <code>river</code> library were evaluated for this, and a third (BOCPD) was considered.</p>
+
+    <div class="section-divider"><span>KSWIN</span></div>
+
+    <h3>Kolmogorov-Smirnov Windowed</h3>
+
+    <p>KSWIN maintains a sliding window of the cost signal and continuously asks: do the older and more recent observations in this window look like they came from the same distribution?</p>
+
+    <p>It partitions the window into two buffers: a <strong>reference buffer</strong> (older observations) and a <strong>test buffer</strong> (recent observations). It then compares their statistical profiles—asking how different the two distributions look. If they look significantly different (beyond what random chance would produce), drift is declared.</p>
+
+    <p>KSWIN is non-parametric: it makes no assumption about the shape of the underlying distribution. It is also conservative: it requires the test buffer to accumulate enough observations to build a statistically reliable empirical CDF before a declaration can be made. This makes it suited to detecting <strong>major structural shifts</strong> (moments where the semantic character of the conversation has fundamentally changed). On a 700-utterance conversation, KSWIN surfaces a small number of such boundaries, each corresponding to a clear domain transition.</p>
+
+    <div class="section-divider"><span>Page Hinkley</span></div>
+
+    <h3>PageHinkley</h3>
+
+    <p>PageHinkley monitors the cumulative sum of deviations of the cost signal from its running mean. It triggers when that cumulative sum exceeds a threshold, indicating the mean has shifted upward — which means the cost signal has sustained a new, higher level.</p>
+
+    <p>Algorithmically, PageHinkley keeps a running average of the cost signal and tracks how much the signal has drifted above that average. It accumulates these deviations over time. Whenever the accumulated drift exceeds a threshold, drift is declared.</p>
+
+    <p>PageHinkley is directional — it looks specifically for sustained upward shifts in the cost signal, not downward or oscillating patterns. It is also memory-efficient: it tracks only the current state and requires constant time per update. Because it reacts to any sustained rise, it is considerably more sensitive than KSWIN — picking up not just major domain changes but every sub-topic transition, tangential digression, or shift in speaker focus. On the same 700-utterance conversation, it produces a much denser set of boundaries.</p>
+
+    <div class="section-divider"><span>Comparison</span></div>
+
+    <h3>Two Detectors, Two Granularities</h3>
+
+    <p>KSWIN and PageHinkley are not alternatives to the same task. They operate at different granularities of topic change.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>KSWIN</th>
+            <th>PageHinkley</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sensitivity</td>
+            <td>Conservative</td>
+            <td>Sensitive</td>
+          </tr>
+          <tr>
+            <td>What it captures</td>
+            <td>Major structural domain shifts</td>
+            <td>Every sub-topic transition</td>
+          </tr>
+          <tr>
+            <td>Mechanism</td>
+            <td>Distributional test (KS statistic)</td>
+            <td>Mean shift (cumulative sum)</td>
+          </tr>
+          <tr>
+            <td>Lag</td>
+            <td>Higher — needs window to fill</td>
+            <td>Lower — reacts immediately</td>
+          </tr>
+          <tr>
+            <td>Online-native</td>
+            <td>Requires window accumulation</td>
+            <td>Fully stateful, O(1) per step</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>KSWIN finds where the conversation fundamentally changes its domain. PageHinkley tracks every micro-shift in semantic focus. Which is appropriate depends on the downstream task: coarse scene segmentation or fine-grained dip detection.</p>
+
+    <!-- ── Illustration C: Interactive ── -->
+    <!-- ── Illustration C: Interactive ── -->
+    <div class="illustration" style="padding: 2rem 1.5rem 1.5rem; text-align: left;">
+      <div class="illustration-title" style="margin-bottom: 1.2rem;">Same Signal, Two Granularities</div>
+
+
+      <!-- Toggle buttons -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.2rem; align-items: center;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); margin-right: 0.2rem;">show:</span>
+        <button class="c-tog active" data-sig="ks"><span class="c-dot" style="background:#f0b030;"></span>KSWIN</button>
+        <button class="c-tog active" data-sig="ph"><span class="c-dot" style="background:#B850FD;"></span>PageHinkley</button>
+        <div style="margin-left: auto; display: flex; gap: 1.2rem;">
+          <span id="c-ks-count" style="font-size: 0.74rem; font-family: var(--font-mono); color: #f0b030;">KSWIN: 4 boundaries</span>
+          <span id="c-ph-count" style="font-size: 0.74rem; font-family: var(--font-mono); color: #B850FD;">PageHinkley: 23 boundaries</span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div style="position: relative; width: 100%;">
+        <canvas id="c-canvas" style="width: 100%; display: block; cursor: crosshair;"></canvas>
+        <div id="c-tooltip" style="position: absolute; display: none; background: rgba(6,6,10,0.94); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0.4rem 0.7rem; font-family: var(--font-mono); font-size: 0.74rem; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); z-index: 10;"></div>
+      </div>
+
+      <!-- Sentence cards -->
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-top: 1.2rem;">
+        <div style="background: rgba(21,191,132,0.05); border: 1px solid rgba(21,191,132,0.15); border-radius: 7px; padding: 0.65rem 0.75rem;">
+          <div style="font-size: 0.62rem; color: #15BF84; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem;">Topic 1</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"Carbon emissions targets were revised for 2030."</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 0.65rem 0.75rem;">
+          <div style="font-size: 0.62rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem;">Topic 2</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"Interest rates rose after the Fed announcement."</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 0.65rem 0.75rem;">
+          <div style="font-size: 0.62rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem;">Topic 3</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"Scientists confirmed water ice on the lunar south pole."</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 0.65rem 0.75rem;">
+          <div style="font-size: 0.62rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem;">Topic 4</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"The senate passed the infrastructure bill yesterday."</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 0.65rem 0.75rem;">
+          <div style="font-size: 0.62rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem;">Topic 5</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">"The festival lineup was announced this morning."</div>
+        </div>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0;">
+        KSWIN fires only at major distributional shifts — the 4 moments where the conversation's domain fundamentally changes. PageHinkley fires at every semantic ripple, including sub-topic micro-shifts within each segment. Toggle each detector to compare. Hover to read the cost value.
+      </p>
+    </div>
+
+    <style>
+      .c-tog {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text-secondary); padding: 0.35rem 0.85rem; border-radius: 6px;
+        font-family: var(--font-mono); font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+      }
+      .c-tog.active { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+      .c-tog:not(.active) { opacity: 0.4; }
+      .c-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    </style>
+
+    <script>
+    (function () {
+      const dpr = window.devicePixelRatio || 1;
+
+      // ── 100-utterance cost signal: 5 topics, 4 major KSWIN boundaries ──
+      const cC = [
+        // Topic 1 (0-19) — climate policy
+        0.06,0.07,0.06,0.27,0.17,0.07,0.06,0.24,0.15,0.07,
+        0.06,0.30,0.20,0.07,0.06,0.07,0.25,0.16,0.07,0.06,
+        // KSWIN boundary → t=20
+        0.81,
+        // Topic 2 (21-44) — economics
+        0.10,0.07,0.23,0.14,0.07,0.06,0.07,0.28,0.18,0.07,
+        0.32,0.21,0.07,0.06,0.07,0.06,0.08,0.26,0.17,0.07,
+        0.30,0.19,0.07,0.06,
+        // KSWIN boundary → t=45
+        0.79,
+        // Topic 3 (46-69) — science
+        0.11,0.07,0.24,0.15,0.07,0.06,0.07,0.31,0.20,0.07,
+        0.06,0.29,0.18,0.07,0.06,0.07,0.26,0.16,0.07,0.06,
+        0.07,0.30,0.19,0.07,
+        // KSWIN boundary → t=70
+        0.82,
+        // Topic 4 (71-89) — politics
+        0.10,0.07,0.06,0.24,0.15,0.07,0.06,0.08,0.29,0.19,
+        0.07,0.06,0.27,0.17,0.07,0.06,0.07,0.28,0.18,
+        // KSWIN boundary → t=90
+        0.85,
+        // Topic 5 (91-99) — culture
+        0.11,0.07,0.06,0.26,0.16,0.07,0.06,0.07,0.08,0.07
+      ];
+
+      // 4 KSWIN boundaries — major domain shifts only
+      const KS_B = [20, 45, 70, 90];
+
+      // 23 PageHinkley boundaries — every semantic ripple + all KSWIN boundaries
+      const PH_B = [3,7,11,16,20, 23,27,31,37,41,45, 48,52,56,62,67,70, 74,79,83,88,90, 94,98];
+
+      // Topic segments for background bands
+      const BANDS = [
+        { start: 0,    end: 20.5,  fill: 'rgba(21,191,132,0.06)' },
+        { start: 20.5, end: 45.5,  fill: 'rgba(255,255,255,0.025)' },
+        { start: 45.5, end: 70.5,  fill: 'rgba(255,255,255,0.025)' },
+        { start: 70.5, end: 90.5,  fill: 'rgba(255,255,255,0.025)' },
+        { start: 90.5, end: 99,    fill: 'rgba(184,80,253,0.04)' },
+      ];
+
+      const st = { ks: { vis: true, a: 1 }, ph: { vis: true, a: 1 } };
+      let hoverIdx = -1;
+      const canvas  = document.getElementById('c-canvas');
+      const ctx     = canvas.getContext('2d');
+      const tooltip = document.getElementById('c-tooltip');
+      const dprv    = dpr;
+      const H = 240;
+      const M = { top: 30, right: 20, bottom: 36, left: 46 };
+      let W = 0;
+      const animF = {};
+
+      function xOf(i)  { return M.left + (i / 99) * (W - M.left - M.right); }
+      function yOf(v)  { return M.top + (1 - Math.min(v, 1.0)) * (H - M.top - M.bottom); }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Background bands
+        BANDS.forEach(b => {
+          ctx.fillStyle = b.fill;
+          ctx.fillRect(xOf(b.start), M.top, xOf(b.end) - xOf(b.start), H - M.top - M.bottom);
+        });
+
+        // Horizontal grid
+        [0, 0.5, 1.0].forEach(v => {
+          ctx.beginPath();
+          ctx.strokeStyle = v === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)';
+          ctx.lineWidth = 1;
+          ctx.moveTo(M.left, yOf(v)); ctx.lineTo(W - M.right, yOf(v)); ctx.stroke();
+        });
+
+        // KSWIN boundaries — tall dashed amber lines (full chart height)
+        if (st.ks.a > 0.02) {
+          KS_B.forEach(bi => {
+            const bx = xOf(bi);
+            ctx.beginPath(); ctx.setLineDash([5, 4]);
+            ctx.globalAlpha = st.ks.a;
+            ctx.strokeStyle = '#f0b030'; ctx.lineWidth = 1.5;
+            ctx.moveTo(bx, M.top - 2); ctx.lineTo(bx, H - M.bottom); ctx.stroke();
+            ctx.setLineDash([]);
+            // "KS" label at top
+            ctx.fillStyle = '#f0b030'; ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center'; ctx.fillText('KS', bx, M.top - 6);
+            ctx.globalAlpha = 1;
+          });
+        }
+
+        // Hover vertical line
+        if (hoverIdx >= 0) {
+          ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+          ctx.lineWidth = 1;
+          ctx.moveTo(xOf(hoverIdx), M.top); ctx.lineTo(xOf(hoverIdx), H - M.bottom);
+          ctx.stroke();
+        }
+
+        // Cost signal line
+        ctx.beginPath(); ctx.strokeStyle = '#15BF84'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+        ctx.moveTo(xOf(0), yOf(cC[0]));
+        for (let i = 1; i < cC.length; i++) ctx.lineTo(xOf(i), yOf(cC[i]));
+        ctx.stroke();
+
+        // Hover dot on signal
+        if (hoverIdx >= 0) {
+          ctx.beginPath(); ctx.arc(xOf(hoverIdx), yOf(cC[hoverIdx]), 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#15BF84'; ctx.fill();
+        }
+
+        // PageHinkley boundaries — full-height dashed purple lines with PH label
+        if (st.ph.a > 0.02) {
+          PH_B.forEach(bi => {
+            const bx = xOf(bi);
+            ctx.beginPath(); ctx.setLineDash([2, 4]);
+            ctx.globalAlpha = st.ph.a * 0.45;
+            ctx.strokeStyle = '#B850FD'; ctx.lineWidth = 0.9;
+            ctx.moveTo(bx, M.top - 2); ctx.lineTo(bx, H - M.bottom); ctx.stroke();
+            ctx.setLineDash([]);
+            if (!KS_B.includes(bi)) {
+              ctx.fillStyle = '#B850FD'; ctx.font = 'bold 9px monospace';
+              ctx.textAlign = 'center';
+              ctx.globalAlpha = st.ph.a;
+              ctx.fillText('PH', bx, M.top - 6);
+            }
+            ctx.globalAlpha = 1;
+          });
+        }
+
+        // Axes
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
+        ctx.moveTo(M.left, M.top); ctx.lineTo(M.left, H - M.bottom);
+        ctx.lineTo(W - M.right, H - M.bottom); ctx.stroke();
+
+        // Y labels
+        [0, 0.5, 1.0].forEach(v => {
+          ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.font = '10px monospace';
+          ctx.textAlign = 'right'; ctx.fillText(v.toFixed(1), M.left - 5, yOf(v) + 4);
+        });
+
+        // X label + PH tick label
+        ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('utterance  t  →', W / 2, H - 4);
+        if (st.ph.a > 0.02) {
+          ctx.fillStyle = 'rgba(184,80,253,0.5)'; ctx.font = '9px monospace';
+          ctx.textAlign = 'left';
+          ctx.globalAlpha = st.ph.a;
+          ctx.fillText('PH →', M.left, H - M.bottom + 12);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // Fade toggle
+      function fadeToggle(key) {
+        const target = st[key].vis ? 1 : 0;
+        if (animF[key]) cancelAnimationFrame(animF[key]);
+        function step() {
+          const diff = target - st[key].a;
+          if (Math.abs(diff) < 0.02) { st[key].a = target; draw(); return; }
+          st[key].a += diff * 0.15; draw();
+          animF[key] = requestAnimationFrame(step);
+        }
+        animF[key] = requestAnimationFrame(step);
+      }
+
+      document.querySelectorAll('.c-tog').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.sig;
+          st[k].vis = !st[k].vis;
+          btn.classList.toggle('active', st[k].vis);
+          fadeToggle(k);
+        });
+      });
+
+      // Hover
+      canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        hoverIdx = Math.max(0, Math.min(99, Math.round((mx - M.left) / (W - M.left - M.right) * 99)));
+        const isKS = KS_B.includes(hoverIdx) && st.ks.a > 0.1;
+        const isPH = PH_B.includes(hoverIdx) && st.ph.a > 0.1;
+        let html = `<div style="color:rgba(255,255,255,0.45);margin-bottom:0.25rem;">u<sub>${hoverIdx}</sub>  cost = ${cC[hoverIdx].toFixed(3)}</div>`;
+        if (isKS) html += `<div style="color:#f0b030;">● KSWIN boundary</div>`;
+        if (isPH && !isKS) html += `<div style="color:#B850FD;">● PageHinkley boundary</div>`;
+        if (isPH && isKS) html += `<div style="color:#B850FD;">● PageHinkley boundary</div>`;
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+        const tw = tooltip.offsetWidth || 180;
+        tooltip.style.left = (mx + 12 + tw > W ? mx - tw - 8 : mx + 12) + 'px';
+        tooltip.style.top = Math.max(4, e.clientY - rect.top - 50) + 'px';
+        draw();
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        hoverIdx = -1; tooltip.style.display = 'none'; draw();
+      });
+
+      function resize() {
+        W = canvas.parentElement.clientWidth;
+        canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+        canvas.width = W * dprv; canvas.height = H * dprv;
+        ctx.setTransform(dprv, 0, 0, dprv, 0, 0); draw();
+      }
+      new ResizeObserver(resize).observe(canvas.parentElement);
+      resize();
+    })();
+    </script>
+
+  <hr />
+
+  <!-- ── Section 6 ── -->
+  <div class="section-block" id="scene-distance">
+    <span class="section-number">06 — Scene Distance</span>
+    <h2>Optimal Transport: Measuring Scene Similarity</h2>
+
+    <p>At this point, the conversation stream has been divided into scenes—discrete windows between detected boundaries. But boundaries alone tell only half the story: they answer <em>when</em> the topic changes. The remaining question is: <em>how similar are different scenes?</em> This matters when the conversation circles back. If the discussion returns to climate policy after an hour of economics, we want to recognize that return—to surface the thread that connects these separated scenes.</p>
+
+    <p>Once boundaries $\mathcal{B}$ are detected, the conversation divides into <strong>scenes</strong>. Each scene is a contiguous stretch of utterances between two consecutive boundaries. If boundaries occur at utterances #13 and #26, there are three scenes: [1–12], [13–25], and [26–end]. Each scene is a window where the topic held coherent.</p>
+
+    <p>We need to measure how semantically similar two scenes are, in order to surface recurring themes and group related discussions. If a podcast spends time on climate policy early and returns to it later, those two scenes should score as close in semantic space — close enough that a downstream system recognizes them as belonging to the same thread, even though they are separated by unrelated conversation.</p>
+
+    <p style="font-size: 0.9rem; color: var(--text-secondary); font-style: italic; margin: 1.5rem 0; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border-left: 2px solid var(--accent-green); border-radius: 4px;"><strong>Notation:</strong> We use subscripts for utterance indices ($u_i$, $e_i$, $\hat{e}_i$) and superscripts for scene membership. Thus $\hat{e}_i^A$ means "the normalized embedding of utterance $i$ from scene $A$".</p>
+
+    <!-- ── Illustration E: Interactive ── -->
+    <div class="illustration" style="padding: 2rem 1.5rem 1.5rem; text-align: left;">
+      <div class="illustration-title" style="margin-bottom: 1.2rem;">Themes Emerging Over Time</div>
+
+      <!-- Legend -->
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; align-items: center;">
+        <div style="display:inline-flex;align-items:center;gap:0.4rem;font-family:var(--font-mono);font-size:0.75rem;color:#15BF84;"><span style="width:10px;height:10px;border-radius:50%;background:#15BF84;display:inline-block;flex-shrink:0;"></span>Climate Policy</div>
+        <div style="display:inline-flex;align-items:center;gap:0.4rem;font-family:var(--font-mono);font-size:0.75rem;color:#f0b030;"><span style="width:10px;height:10px;border-radius:50%;background:#f0b030;display:inline-block;flex-shrink:0;"></span>Economics</div>
+        <div style="display:inline-flex;align-items:center;gap:0.4rem;font-family:var(--font-mono);font-size:0.75rem;color:#B850FD;"><span style="width:10px;height:10px;border-radius:50%;background:#B850FD;display:inline-block;flex-shrink:0;"></span>Space Science</div>
+        <span style="margin-left:auto;font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);">same color = same theme returning</span>
+      </div>
+
+      <!-- Canvas -->
+      <div style="position: relative; width: 100%;">
+        <canvas id="e-canvas" style="width: 100%; display: block; cursor: crosshair;"></canvas>
+        <div id="e-tooltip" style="position: absolute; display: none; background: rgba(6,6,10,0.94); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0.5rem 0.75rem; font-family: var(--font-mono); font-size: 0.74rem; pointer-events: none; backdrop-filter: blur(8px); z-index: 10; max-width: 260px; line-height: 1.5;"></div>
+      </div>
+
+      <!-- Controls -->
+      <div style="display: flex; gap: 0.6rem; margin-top: 0.8rem; align-items: center; flex-wrap: wrap;">
+        <button id="e-play" class="e-ctrl">▶ Play</button>
+        <button id="e-restart" class="e-ctrl">↺ Restart</button>
+        <span id="e-status" style="font-size: 0.74rem; color: var(--text-muted); font-family: var(--font-mono); margin-left: auto;">Press Play to watch themes emerge</span>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.8rem; margin-bottom: 0;">
+        Each dot is an utterance plotted on the cost signal, colored by detected topic. Notice each theme occupies a distinct cost band — Economics runs higher, Climate lower. When the same color reappears after an absence, the pipeline recognized a recurring thread. Hover any dot to read its text.
+      </p>
+    </div>
+
+    <style>
+      .e-ctrl { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary); padding: 0.3rem 0.75rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+      .e-ctrl:hover { border-color: rgba(255,255,255,0.25); color: var(--text-primary); }
+    </style>
+
+    <script>
+    (function () {
+      const dpr = window.devicePixelRatio || 1;
+      const TOPICS = [
+        { name: 'Climate Policy', color: '#15BF84' },
+        { name: 'Economics',      color: '#f0b030' },
+        { name: 'Space Science',  color: '#B850FD' },
+      ];
+      const SENTENCES = [
+        ["Carbon emissions targets were revised for 2030.","Solar panel deployment exceeded expectations this quarter.","The IPCC report warned of accelerating ice sheet loss.","EU carbon border tax faces pushback from trade partners.","Methane reduction pledges fell short of Paris targets.","Wildfire season broke records across three continents.","Green hydrogen investment hit a record high.","Coastal adaptation funding remains critically underfunded.","Net-zero commitments still lack enforcement mechanisms."],
+        ["Interest rates rose after the Fed announcement.","Tech stocks led gains on the Nasdaq yesterday.","Consumer spending remained resilient despite inflation.","Supply chain bottlenecks eased in semiconductor markets.","The yuan weakened against the dollar on trade data.","Private equity buyouts slowed amid rising borrowing costs.","Unemployment held steady at 3.8% in the latest report.","Retail sales beat forecasts driven by electronics demand.","Venture capital funding dropped for the third straight quarter."],
+        ["Scientists confirmed water ice on the lunar south pole.","The Webb telescope captured images of a new exoplanet.","A reusable booster completed its tenth successful landing.","Mars samples showed signs of ancient water flow.","A solar storm disrupted satellite communications briefly.","Europa’s ocean may harbor microbial life, researchers say.","Lunar Gateway construction timelines were revised.","Dark matter maps were refined using gravitational lensing.","A new mRNA cancer vaccine showed 80% efficacy in trials."],
+      ];
+      const SEG_TOPICS = [0, 1, 2, 0, 2, 1];
+      // Each topic has a distinct cost band:
+      // Climate ~0.07-0.12 (low),  Science ~0.13-0.20 (mid),  Economics ~0.21-0.29 (high)
+      // Boundary spikes ~0.77-0.83 at segment transitions
+      const COSTS = [
+        // Seg 0 — Climate (0-8): low smooth band
+        0.07, 0.09, 0.11, 0.10, 0.08, 0.10, 0.12, 0.09, 0.07,
+        // Seg 1 — Economics (9-17): boundary spike + high band ~0.68-0.72
+        0.70, 0.68, 0.70, 0.72, 0.71, 0.69, 0.71, 0.70, 0.68,
+        // Seg 2 — Science (18-26): mid band ~0.48-0.52
+        0.49, 0.48, 0.50, 0.52, 0.50, 0.48, 0.51, 0.49, 0.47,
+        // Seg 3 — Climate returns (27-35): boundary spike + low band again
+        0.09, 0.08, 0.10, 0.12, 0.11, 0.09, 0.11, 0.10, 0.08,
+        // Seg 4 — Science returns (36-44): mid band ~0.48-0.52
+        0.50, 0.49, 0.51, 0.52, 0.50, 0.48, 0.51, 0.49, 0.47,
+        // Seg 5 — Economics returns (45-53): high band ~0.68-0.72
+        0.69, 0.69, 0.71, 0.72, 0.70, 0.68, 0.71, 0.70, 0.68,
+      ];
+      const N = COSTS.length;
+      const TOPIC_ID = [], SENTENCE = [];
+      for (let seg = 0; seg < 6; seg++) {
+        const tid = SEG_TOPICS[seg];
+        for (let j = 0; j < 9; j++) { TOPIC_ID.push(tid); SENTENCE.push(SENTENCES[tid][j]); }
+      }
+      const RETURNING = new Set([27, 36, 45]);
+      const KS_B = [9, 18, 27, 36, 45];
+      const BAND_FILLS = ['rgba(21,191,132,0.05)','rgba(240,176,48,0.04)','rgba(184,80,253,0.05)','rgba(21,191,132,0.05)','rgba(184,80,253,0.05)','rgba(240,176,48,0.04)'];
+
+      let step = 0, playing = false, lastTs = 0, rafId = null;
+      const speedMs = 90;
+      const pulses = [], triggeredPulses = new Set();
+      let hoverIdx = -1;
+
+      const canvas  = document.getElementById('e-canvas');
+      const ctx     = canvas.getContext('2d');
+      const tooltip = document.getElementById('e-tooltip');
+      const H = 240, M = { top: 30, right: 20, bottom: 28, left: 46 };
+      let W = 0;
+
+      function xOf(i) { return M.left + (i / (N-1)) * (W - M.left - M.right); }
+      function yOf(v) { return M.top + (1 - Math.min(v, 1.0)) * (H - M.top - M.bottom); }
+
+      // Smooth catmull-rom line through points up to index `upTo`
+      function drawSmooth(upTo) {
+        if (upTo < 1) return;
+        const pts = [];
+        for (let i = 0; i <= upTo; i++) pts.push({ x: xOf(i), y: yOf(COSTS[i]) });
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i-1)];
+          const p1 = pts[i];
+          const p2 = pts[i+1];
+          const p3 = pts[Math.min(pts.length-1, i+2)];
+          ctx.bezierCurveTo(
+            p1.x + (p2.x - p0.x)/6, p1.y + (p2.y - p0.y)/6,
+            p2.x - (p3.x - p1.x)/6, p2.y - (p3.y - p1.y)/6,
+            p2.x, p2.y
+          );
+        }
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
+      }
+
+      function draw(ts) {
+        ctx.clearRect(0, 0, W, H);
+        // Topic background bands
+        for (let seg = 0; seg < 6; seg++) {
+          const x1 = xOf(seg * 9), x2 = seg < 5 ? xOf((seg+1)*9 - 0.5) : W - M.right;
+          ctx.fillStyle = BAND_FILLS[seg]; ctx.fillRect(x1, M.top, x2-x1, H-M.top-M.bottom);
+        }
+        // Horizontal grid
+        [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+          ctx.beginPath(); ctx.strokeStyle = v===0||v===1 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
+          ctx.lineWidth = 1; ctx.moveTo(M.left, yOf(v)); ctx.lineTo(W-M.right, yOf(v)); ctx.stroke();
+        });
+        // KSWIN boundary markers
+        KS_B.forEach(bi => {
+          if (bi > step) return;
+          ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1;
+          ctx.moveTo(xOf(bi), M.top); ctx.lineTo(xOf(bi), H-M.bottom); ctx.stroke(); ctx.setLineDash([]);
+        });
+        // Smooth cost signal line
+        if (step > 0) drawSmooth(Math.min(step, N-1));
+        // Dots
+        const cur = Math.min(step, N-1);
+        for (let i = 0; i <= cur; i++) {
+          const color = TOPICS[TOPIC_ID[i]].color, x = xOf(i), y = yOf(COSTS[i]);
+          const isHov = i===hoverIdx, isFront = i===cur && step<N;
+          ctx.beginPath(); ctx.arc(x, y, isHov?5.8:isFront?4.9:4.0, 0, Math.PI*2);
+          ctx.fillStyle = color; ctx.globalAlpha = isHov?1:0.88; ctx.fill(); ctx.globalAlpha = 1;
+          if (isHov) { ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.globalAlpha=0.35; ctx.stroke(); ctx.globalAlpha=1; }
+        }
+        // Pulse rings for returning themes
+        if (ts) {
+          for (let i = pulses.length-1; i >= 0; i--) {
+            const p = pulses[i], age = ts-p.start, dur = 900;
+            if (age > dur) { pulses.splice(i,1); continue; }
+            const t = age/dur;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 6+t*26, 0, Math.PI*2);
+            ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.globalAlpha = (1-t)*0.7; ctx.stroke(); ctx.globalAlpha = 1;
+          }
+        }
+        // Axes
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
+        ctx.moveTo(M.left, M.top); ctx.lineTo(M.left, H-M.bottom); ctx.lineTo(W-M.right, H-M.bottom); ctx.stroke();
+        [0, 0.5, 1.0].forEach(v => { ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='10px monospace'; ctx.textAlign='right'; ctx.fillText(v.toFixed(1), M.left-5, yOf(v)+4); });
+        ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('utterance  t  →', W/2, H-6);
+        // Status
+        const s = document.getElementById('e-status');
+        if (step===0) s.textContent='Press Play to watch themes emerge';
+        else if (step>=N-1) s.textContent=N+' utterances · 3 topics · same color = same theme';
+        else { const tp=TOPICS[TOPIC_ID[step]]; s.innerHTML='u'+step+' &nbsp;&middot;&nbsp; <span style="color:'+tp.color+'">'+tp.name+'</span>'; }
+      }
+
+      function loop(ts) {
+        if (playing && step < N-1) {
+          if (!lastTs || ts-lastTs >= speedMs) {
+            lastTs = ts; step++;
+            if (RETURNING.has(step) && !triggeredPulses.has(step)) {
+              triggeredPulses.add(step);
+              pulses.push({ x:xOf(step), y:yOf(COSTS[step]), color:TOPICS[TOPIC_ID[step]].color, start:ts });
+            }
+            if (step >= N-1) { playing=false; document.getElementById('e-play').textContent='▶ Play'; }
+          }
+        }
+        draw(ts);
+        if (playing || pulses.length > 0 || hoverIdx >= 0) rafId = requestAnimationFrame(loop);
+        else rafId = null;
+      }
+      function startLoop() { if (!rafId) rafId = requestAnimationFrame(loop); }
+
+      document.getElementById('e-play').addEventListener('click', () => {
+        if (step >= N-1) { step=0; triggeredPulses.clear(); pulses.length=0; }
+        playing = !playing;
+        document.getElementById('e-play').textContent = playing ? '⏸ Pause' : '▶ Play';
+        if (playing) { lastTs=0; startLoop(); }
+      });
+      document.getElementById('e-restart').addEventListener('click', () => {
+        playing=false; step=0; triggeredPulses.clear(); pulses.length=0;
+        document.getElementById('e-play').textContent='▶ Play'; draw(0);
+      });
+
+      canvas.addEventListener('mousemove', e => {
+        const rect=canvas.getBoundingClientRect(), mx=e.clientX-rect.left, my=e.clientY-rect.top;
+        let nearest=-1, nearDist=14;
+        for (let i=0; i<=Math.min(step,N-1); i++) { const dx=mx-xOf(i),dy=my-yOf(COSTS[i]),d=Math.sqrt(dx*dx+dy*dy); if(d<nearDist){nearDist=d;nearest=i;} }
+        if (nearest !== hoverIdx) {
+          hoverIdx = nearest;
+          if (nearest >= 0) {
+            const tp=TOPICS[TOPIC_ID[nearest]];
+            tooltip.innerHTML='<div style="color:'+tp.color+';font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.2rem;">'+tp.name+'</div><div style="color:rgba(255,255,255,0.75);">'+SENTENCE[nearest]+'</div>';
+            tooltip.style.display='block';
+            const tw=tooltip.offsetWidth||220;
+            tooltip.style.left=(mx+14+tw>W?mx-tw-8:mx+14)+'px'; tooltip.style.top=Math.max(4,my-44)+'px';
+          } else { tooltip.style.display='none'; }
+          startLoop();
+        }
+      });
+      canvas.addEventListener('mouseleave', () => { hoverIdx=-1; tooltip.style.display='none'; startLoop(); });
+
+      function resize() {
+        W=canvas.parentElement.clientWidth; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+        canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); draw(0);
+      }
+      new ResizeObserver(resize).observe(canvas.parentElement);
+      resize();
+    })();
+    </script>
+
+
+
+    <h3>The Problem with Mean Embeddings</h3>
+
+    <p>A natural first approach is to represent each scene by the mean of its utterance embeddings:</p>
+
+    <div class="math-block">$$\bar{e}_A = \frac{1}{|A|} \sum_{i \in A} \hat{e}_i$$</div>
+
+    <p>Then compute the distance between scenes as the angle between their means:</p>
+
+    <div class="math-block">$$d(A, B) = 1 - \cos\!\left(\bar{e}_A,\ \bar{e}_B\right)$$</div>
+
+    <p>This is computationally cheap and intuitive. But it discards a critical piece of information: the internal structure of each scene.</p>
+
+    <p>Consider two scenes: Scene A contains five utterances about emissions targets, carbon pricing, regulatory timelines, international treaties, and enforcement mechanisms. Scene B contains three utterances about emissions targets, renewable investment, and ocean acidification. Both discuss climate, so their mean embeddings land in the same region of semantic space. Yet their internal composition is different: Scene A clusters tightly around policy mechanics; Scene B sprawls across climate topics. A distance metric that collapses each scene to a single point treats these as equally similar to some third scene — which may not reflect their actual semantic character.</p>
+
+    <p>There is also a structural imbalance: Scene A has five utterances; Scene B has three. A mean computed from three points carries less statistical weight than one from five, yet the metric ignores this asymmetry.</p>
+
+    <h3>Optimal Transport</h3>
+
+    <p>Rather than collapse each scene to a single point, treat it as what it actually is: a cloud of utterance embeddings scattered across semantic space. The climate policy scene in hour 1 contains four utterances — each landing at a specific location in the 384-dimensional embedding space. The climate policy scene in hour 3 contains six utterances — different sentences, but about the same topic, landing in roughly the same region.</p>
+
+    <p>The question becomes: what is the minimum effort required to rearrange the utterances of Scene A into the configuration of Scene B? Effort here means moving an utterance's semantic mass across the embedding space — short moves are cheap, long moves are expensive.</p>
+
+    <p>Each scene is a discrete probability distribution over its utterance embeddings. Every utterance contributes equal mass:</p>
+
+    <div class="math-block">$$\mu_A = \frac{1}{n} \sum_{i=1}^n \delta_{\hat{e}_i^A}, \quad \mu_B = \frac{1}{m} \sum_{j=1}^m \delta_{\hat{e}_j^B}$$</div>
+
+    <p>Here, $\delta_{\hat{e}_i^A}$ means "one unit of probability mass placed at the location of embedding $\hat{e}_i^A$." Think of it as: each utterance in a scene is a point in semantic space, and they collectively define the scene's profile. The total mass in each distribution is 1, spread equally across utterances—whether Scene A has 3 utterances or 30.</p>
+
+    <p>For each pair of utterances — one from Scene A, one from Scene B — we compute the semantic distance (the transport cost):</p>
+
+    <div class="math-block">$$C_{ij} = 1 - \cos\!\left(\hat{e}_i^A,\ \hat{e}_j^B\right)$$</div>
+
+    <p>Now we ask: what matching between utterances minimizes the total transport cost? Climate utterances from Scene A should preferentially match with climate utterances from Scene B (short distance). Scene A economics utterances should match with Scene B economics utterances. The optimal matching is found by solving the transport problem, which yields the <strong>Wasserstein distance</strong>—a single number representing the total minimum effort.</p>
+
+    <p>This metric respects the full structure of each scene, accounts for different scene lengths naturally (unequal distributions are penalized), and gives a principled measure of semantic similarity.</p>
+
+    <!-- ── Interactive Optimal Transport Visualization ── -->
+    <p><strong>To build intuition, let's see this in action.</strong> Below is an interactive visualization with three lessons:</p>
+    <ul style="margin: 1.25rem 0; padding-left: 1.5rem; color: var(--text-secondary); line-height: 1.8; font-size: 1rem;">
+      <li><strong>1D · The Metaphor</strong> — Watch particles physically move from source to target, cost accumulating step by step</li>
+      <li><strong>2D · Scene Transport</strong> — Real utterance embeddings, mass rings shrinking and growing, the semantic gap visualized</li>
+      <li><strong>Why Not Centroids?</strong> — Two scenes with identical centers but different shapes. See why centroids fail</li>
+    </ul>
+
+    <div style="margin: 2.5rem 0; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid var(--border);">
+      <iframe
+        src="./ot_visualization.html"
+        style="width: 100%; height: 1050px; border: none; background: var(--bg-elevated);"
+        title="Earth Mover's Distance — Interactive Visualization">
+      </iframe>
+    </div>
+
+    <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 0.95rem;"><em>Press Play to animate, adjust Speed to explore at your own pace, toggle tabs to see different perspectives. Hover on utterances to read their text.</em></p>
+
+
+    <h3>Geometric Consistency</h3>
+
+    <p>The cost matrix uses $1 - \cos(\hat{e}_i^A, \hat{e}_j^B)$ — the same metric as the cost signal $c_t = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$. This is deliberate: by reusing the cosine metric throughout, all distances—whether between consecutive utterances or across scenes—live in the same geometric framework. The cost signal, the drift detectors, and the scene similarity measure all operate within this unified space.</p>
+  </div>
+
+  <!-- ── Conclusion ── -->
+  <div class="conclusion-card" id="conclusion">
+    <h2>Conclusion</h2>
+    <p>Conversations are one of the richest and most structurally complex things humans produce — and they have historically been treated by machines as a flat bag of words. The premise here is different: a conversation has geometry. Topics cluster. Transitions spike. Scenes that circle back to the same idea land near each other in the embedding space, even when separated by an hour of intervening content.</p>
+    <p>What this pipeline does is make that geometry legible. Not by training a classifier, not by defining what a topic is in advance, but by treating the conversation as a stream and listening for where the stream changes. The cost signal catches the moment. The drift detectors decide whether the moment was real. Optimal transport measures how far apart two stretches of that stream actually are — accounting for every utterance, not just an averaged center of mass.</p>
+    <p>The approach is deliberately domain-agnostic. The same formulation that finds topic boundaries in a financial podcast applies equally to a medical consultation, a research interview, or a multi-hour deposition — with no retraining and no domain-specific tuning. That generality is a direct consequence of grounding everything in geometry rather than labels.</p>
+  </div>
+
+  <!-- ── References ── -->
+  <div class="references" id="references">
+    <h2>References</h2>
+    <ol>
+      <li>PageHinkley — <a href="https://riverml.xyz/dev/api/drift/PageHinkley/" target="_blank" rel="noopener">river drift detection: PageHinkley</a></li>
+      <li>KSWIN — <a href="https://riverml.xyz/0.9.0/api/drift/KSWIN/" target="_blank" rel="noopener">river drift detection: KSWIN</a></li>
+      <li>Wasserstein / Earth Mover's Distance — <a href="https://pythonot.github.io/" target="_blank" rel="noopener">POT: Python Optimal Transport library</a></li>
+      <li>Bayesian Online Changepoint Detection — <a href="https://arxiv.org/abs/0710.3742" target="_blank" rel="noopener">Adams &amp; MacKay, 2007</a></li>
+    </ol>
+  </div>
+
+</article>
+
+<!-- Footer -->
+<footer>
+  <p>Audria Research · <span>audria.tech</span></p>
+</footer>
+
+<!-- Reading progress script -->
+<script>
+  const bar = document.getElementById('progress');
+  window.addEventListener('scroll', () => {
+    const scrolled = window.scrollY;
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (scrolled / total * 100) + '%';
+  });
+</script>
+
+</body>
+</html>
