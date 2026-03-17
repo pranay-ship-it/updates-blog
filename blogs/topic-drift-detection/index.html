@@ -540,12 +540,26 @@
     article { animation: fadeUp 0.6s 0.1s ease both; }
 
     /* ── Responsive ─────────────────────────────────────────── */
-    @media (max-width: 640px) {
-      nav { padding: 0 1rem; }
+    @media (max-width: 768px) {
+      nav {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      .nav-links {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      .nav-links li a { padding: 0.25rem 0; }
       .hero, article { padding-left: 1.25rem; padding-right: 1.25rem; }
+      h1 { font-size: 2rem; }
       h2 { font-size: 1.5rem; }
       .conclusion-card { padding: 1.75rem; }
-      .math-block { padding: 1rem 1.25rem; }
+      .math-block { padding: 1rem 1.25rem; font-size: 0.9rem; }
+      iframe { height: 700px !important; }
     }
   </style>
 </head>
@@ -595,7 +609,7 @@
 
   <!-- ── Section 1 ── -->
   <div class="section-block" id="problem">
-    <span class="section-number">01 — The Problem</span>
+    <span class="section-number">01: The Problem</span>
     <h2>Topic Change, Not Topic Detection</h2>
 
     <p>Conversations are not documents. A document sits still. You can read it at any speed, in any order, index it, search it. A conversation unfolds in time. One utterance at a time. One topic bleeding into the next, with no chapter headings or paragraph breaks to announce where one idea ends and another begins.</p>
@@ -611,7 +625,7 @@
 
   <!-- ── Section 2 ── -->
   <div class="section-block" id="formalization">
-    <span class="section-number">02 — Formalization</span>
+    <span class="section-number">02: Formalization</span>
     <h2>Formalizing the Problem</h2>
 
     <p>Think of a conversation (a podcast, an interview, a meeting) as a sequence of utterances. An utterance is a chunk of speech transcribed over a small time interval: a thought, a sentence or two, a response. Strung together, these utterances form segments. Each segment discusses a coherent topic (one stretch about climate policy, the next about economics, another about space exploration).</p>
@@ -645,7 +659,7 @@
 
   <!-- ── Section 3 ── -->
   <div class="section-block" id="signal">
-    <span class="section-number">03 — Signal Construction</span>
+    <span class="section-number">03: Signal Construction</span>
     <h2>From Text to a Detectable Signal</h2>
 
     <h3>Sentence Embeddings</h3>
@@ -933,18 +947,18 @@
 
   <!-- ── Section 4 ── -->
   <div class="section-block" id="signal-design">
-    <span class="section-number">04 — Signal Design</span>
+    <span class="section-number">04: Signal Design</span>
     <h2>The Cost Signal: Three Formulations</h2>
 
     <p>The formula $c_t = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$ is the baseline, but it was not the only formulation considered. Three candidates were built and evaluated. They represent the actual evolution of thinking on what a cost signal should capture.</p>
 
-    <h3>Formulation 1 — Short-Term Cost</h3>
+    <h3>Formulation 1: Short-Term Cost</h3>
 
     <div class="math-block">$$c_t^{\text{short}} = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$$</div>
 
     <p>Compares only the current utterance to the immediately preceding one. Fast, reactive, instantaneous. Sensitive to any individual utterance that diverges from its neighbor, noisy for rambling or transitional speech, but highly responsive at clean boundaries. This is also the formulation that works in a fully streaming setting: it requires no history beyond a single previous embedding.</p>
 
-    <h3>Formulation 2 — Long-Term Cost</h3>
+    <h3>Formulation 2: Long-Term Cost</h3>
 
     <div class="math-block">$$c_t^{\text{long}} = 1 - \frac{1}{K} \sum_{\text{topK in } [t-W,t)} \left(\hat{e}_t \cdot \hat{e}_{t-j}\right)$$</div>
 
@@ -952,7 +966,7 @@
 
     <p>This is smoother and more robust to single-utterance noise. It lags, however. By the time the long-term cost rises enough to trigger a boundary, the conversation is already several utterances deep into the new topic.</p>
 
-    <h3>Formulation 3 — Drift Trend</h3>
+    <h3>Formulation 3: Drift Trend</h3>
 
     <div class="math-block">$$c_t^{\text{trend}} = 1 - \hat{e}_{t-1} \cdot \frac{\bar{e}_{\text{hist}}}{\|\bar{e}_{\text{hist}}\|}$$</div>
 
@@ -1263,7 +1277,7 @@
 
   <!-- ── Section 5 ── -->
   <div class="section-block" id="detection">
-    <span class="section-number">05 — Detection</span>
+    <span class="section-number">05: Detection</span>
     <h2>Drift Detection Algorithms</h2>
 
     <p>With a scalar cost signal $\{c_t\}$ in hand, the remaining task is distinguishing genuine distribution shifts from random fluctuation. Two algorithms from the <code>river</code> library were evaluated for this, and a third (BOCPD) was considered.</p>
@@ -1616,7 +1630,7 @@
 
   <!-- ── Section 6 ── -->
   <div class="section-block" id="scene-distance">
-    <span class="section-number">06 — Scene Distance</span>
+    <span class="section-number">06: Scene Distance</span>
     <h2>Optimal Transport: Measuring Scene Similarity</h2>
 
     <p>At this point, the conversation stream has been divided into scenes—discrete windows between detected boundaries. But boundaries alone tell only half the story: they answer <em>when</em> the topic changes. The remaining question is: <em>how similar are different scenes?</em> This matters when the conversation circles back. If the discussion returns to climate policy after an hour of economics, we want to recognize that return—to surface the thread that connects these separated scenes.</p>
