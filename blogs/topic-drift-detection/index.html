@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detecting Topic Drift in Conversations — Audria Research</title>
+  <title>Detecting Topic Drift in Conversations | Audria Research</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -588,11 +588,11 @@
 <header class="hero">
   <div style="margin-bottom:14px;"><span class="tag tag-green">NLP Engineering</span></div>
   <h1>Detecting Topic <span class="gradient-word">Drift</span> in Conversations</h1>
-  <p class="hero-sub">From cost signals and drift detectors to Earth Mover's Distance — how we built a pipeline that listens for when a conversation changes direction.</p>
+  <p class="hero-sub">From cost signals and drift detectors to Earth Mover's Distance: how we built a pipeline that listens for when a conversation changes direction.</p>
   <div class="hero-meta">
     <div class="avatar" style="background: var(--gradient); width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--bg);">A</div>
     <div class="meta-text">
-      <div class="author">Audria Research — Raghav Jain, Shubham Mishra</div>
+      <div class="author">Audria Research, Raghav Jain, Shubham Mishra</div>
       <div class="date">March 2026</div>
     </div>
     <div class="meta-divider"></div>
@@ -650,7 +650,7 @@
 
     <p>Each segment forms a distribution, a cloud of embeddings scattered across semantic space. The goal is to find the boundaries $\mathcal{B}$ where the distribution changes. Wherever a boundary exists, the stream before that point and the stream after are semantically different enough to be recognizable.</p>
 
-    <p>This is the <strong>online change point detection</strong> problem—a well-studied challenge in statistics and signal processing for detecting shifts in streaming data. We're adapting it to the semantic embedding stream of a conversation.</p>
+    <p>This is the <strong>online change point detection</strong> problem, a well-studied challenge in statistics and signal processing for detecting shifts in streaming data. We're adapting it to the semantic embedding stream of a conversation.</p>
 
     <p>The pipeline becomes: Utterances → Embeddings → Pattern recognition → Boundary detection.</p>
   </div>
@@ -972,7 +972,7 @@
 
     <p>where $\bar{e}_{\text{hist}} = \frac{1}{|W|}\sum_{j \in W} \hat{e}_j$ is the mean embedding of recent history.</p>
 
-    <p>Rather than asking how different the current utterance is, this asks how much the <em>context itself</em> has been moving — the directional drift of the embedding stream as a whole. Designed to catch slow, gradual thematic migration that neither of the above formulations would catch clearly.</p>
+    <p>Rather than asking how different the current utterance is, this asks how much the <em>context itself</em> has been moving, the directional drift of the embedding stream as a whole. Designed to catch slow, gradual thematic migration that neither of the above formulations would catch clearly.</p>
 
     <!-- ── Illustration B: Interactive ── -->
     <div class="illustration" style="padding: 2rem 1.5rem 1.5rem; text-align: left;">
@@ -1288,7 +1288,7 @@
 
     <p>KSWIN maintains a sliding window of the cost signal and continuously asks: do the older and more recent observations in this window look like they came from the same distribution?</p>
 
-    <p>It partitions the window into two buffers: a <strong>reference buffer</strong> (older observations) and a <strong>test buffer</strong> (recent observations). It then compares their statistical profiles—asking how different the two distributions look. If they look significantly different (beyond what random chance would produce), drift is declared.</p>
+    <p>It partitions the window into two buffers: a <strong>reference buffer</strong> (older observations) and a <strong>test buffer</strong> (recent observations). It then compares their statistical profiles, asking how different the two distributions look. If they look significantly different (beyond what random chance would produce), drift is declared.</p>
 
     <p>KSWIN is non-parametric: it makes no assumption about the shape of the underlying distribution. It is also conservative: it requires the test buffer to accumulate enough observations to build a statistically reliable empirical CDF before a declaration can be made. This makes it suited to detecting <strong>major structural shifts</strong> (moments where the semantic character of the conversation has fundamentally changed). On a 700-utterance conversation, KSWIN surfaces a small number of such boundaries, each corresponding to a clear domain transition.</p>
 
@@ -1296,11 +1296,11 @@
 
     <h3>PageHinkley</h3>
 
-    <p>PageHinkley monitors the cumulative sum of deviations of the cost signal from its running mean. It triggers when that cumulative sum exceeds a threshold, indicating the mean has shifted upward — which means the cost signal has sustained a new, higher level.</p>
+    <p>PageHinkley monitors the cumulative sum of deviations of the cost signal from its running mean. It triggers when that cumulative sum exceeds a threshold, indicating the mean has shifted upward, which means the cost signal has sustained a new, higher level.</p>
 
     <p>Algorithmically, PageHinkley keeps a running average of the cost signal and tracks how much the signal has drifted above that average. It accumulates these deviations over time. Whenever the accumulated drift exceeds a threshold, drift is declared.</p>
 
-    <p>PageHinkley is directional — it looks specifically for sustained upward shifts in the cost signal, not downward or oscillating patterns. It is also memory-efficient: it tracks only the current state and requires constant time per update. Because it reacts to any sustained rise, it is considerably more sensitive than KSWIN — picking up not just major domain changes but every sub-topic transition, tangential digression, or shift in speaker focus. On the same 700-utterance conversation, it produces a much denser set of boundaries.</p>
+    <p>PageHinkley is directional: it looks specifically for sustained upward shifts in the cost signal, not downward or oscillating patterns. It is also memory-efficient: it tracks only the current state and requires constant time per update. Because it reacts to any sustained rise, it is considerably more sensitive than KSWIN, picking up not just major domain changes but every sub-topic transition, tangential digression, or shift in speaker focus. On the same 700-utterance conversation, it produces a much denser set of boundaries.</p>
 
     <div class="section-divider"><span>Comparison</span></div>
 
@@ -1335,8 +1335,8 @@
           </tr>
           <tr>
             <td>Lag</td>
-            <td>Higher — needs window to fill</td>
-            <td>Lower — reacts immediately</td>
+            <td>Higher (needs window to fill)</td>
+            <td>Lower (reacts immediately)</td>
           </tr>
           <tr>
             <td>Online-native</td>
@@ -1397,7 +1397,7 @@
       </div>
 
       <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0;">
-        KSWIN fires only at major distributional shifts — the 4 moments where the conversation's domain fundamentally changes. PageHinkley fires at every semantic ripple, including sub-topic micro-shifts within each segment. Toggle each detector to compare. Hover to read the cost value.
+        KSWIN fires only at major distributional shifts, the 4 moments where the conversation's domain fundamentally changes. PageHinkley fires at every semantic ripple, including sub-topic micro-shifts within each segment. Toggle each detector to compare. Hover to read the cost value.
       </p>
     </div>
 
@@ -1633,11 +1633,11 @@
     <span class="section-number">06: Scene Distance</span>
     <h2>Optimal Transport: Measuring Scene Similarity</h2>
 
-    <p>At this point, the conversation stream has been divided into scenes—discrete windows between detected boundaries. But boundaries alone tell only half the story: they answer <em>when</em> the topic changes. The remaining question is: <em>how similar are different scenes?</em> This matters when the conversation circles back. If the discussion returns to climate policy after an hour of economics, we want to recognize that return—to surface the thread that connects these separated scenes.</p>
+    <p>At this point, the conversation stream has been divided into scenes, discrete windows between detected boundaries. But boundaries alone tell only half the story: they answer <em>when</em> the topic changes. The remaining question is: <em>how similar are different scenes?</em> This matters when the conversation circles back. If the discussion returns to climate policy after an hour of economics, we want to recognize that return, to surface the thread that connects these separated scenes.</p>
 
     <p>Once boundaries $\mathcal{B}$ are detected, the conversation divides into <strong>scenes</strong>. Each scene is a contiguous stretch of utterances between two consecutive boundaries. If boundaries occur at utterances #13 and #26, there are three scenes: [1–12], [13–25], and [26–end]. Each scene is a window where the topic held coherent.</p>
 
-    <p>We need to measure how semantically similar two scenes are, in order to surface recurring themes and group related discussions. If a podcast spends time on climate policy early and returns to it later, those two scenes should score as close in semantic space — close enough that a downstream system recognizes them as belonging to the same thread, even though they are separated by unrelated conversation.</p>
+    <p>We need to measure how semantically similar two scenes are, in order to surface recurring themes and group related discussions. If a podcast spends time on climate policy early and returns to it later, those two scenes should score as close in semantic space, close enough that a downstream system recognizes them as belonging to the same thread, even though they are separated by unrelated conversation.</p>
 
     <p style="font-size: 0.9rem; color: var(--text-secondary); font-style: italic; margin: 1.5rem 0; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border-left: 2px solid var(--accent-green); border-radius: 4px;"><strong>Notation:</strong> We use subscripts for utterance indices ($u_i$, $e_i$, $\hat{e}_i$) and superscripts for scene membership. Thus $\hat{e}_i^A$ means "the normalized embedding of utterance $i$ from scene $A$".</p>
 
@@ -1667,7 +1667,7 @@
       </div>
 
       <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.8rem; margin-bottom: 0;">
-        Each dot is an utterance plotted on the cost signal, colored by detected topic. Notice each theme occupies a distinct cost band — Economics runs higher, Climate lower. When the same color reappears after an absence, the pipeline recognized a recurring thread. Hover any dot to read its text.
+        Each dot is an utterance plotted on the cost signal, colored by detected topic. Notice each theme occupies a distinct cost band. Economics runs higher, Climate lower. When the same color reappears after an absence, the pipeline recognized a recurring thread. Hover any dot to read its text.
       </p>
     </div>
 
@@ -1873,36 +1873,36 @@
 
     <p>This is computationally cheap and intuitive. But it discards a critical piece of information: the internal structure of each scene.</p>
 
-    <p>Consider two scenes: Scene A contains five utterances about emissions targets, carbon pricing, regulatory timelines, international treaties, and enforcement mechanisms. Scene B contains three utterances about emissions targets, renewable investment, and ocean acidification. Both discuss climate, so their mean embeddings land in the same region of semantic space. Yet their internal composition is different: Scene A clusters tightly around policy mechanics; Scene B sprawls across climate topics. A distance metric that collapses each scene to a single point treats these as equally similar to some third scene — which may not reflect their actual semantic character.</p>
+    <p>Consider two scenes: Scene A contains five utterances about emissions targets, carbon pricing, regulatory timelines, international treaties, and enforcement mechanisms. Scene B contains three utterances about emissions targets, renewable investment, and ocean acidification. Both discuss climate, so their mean embeddings land in the same region of semantic space. Yet their internal composition is different: Scene A clusters tightly around policy mechanics; Scene B sprawls across climate topics. A distance metric that collapses each scene to a single point treats these as equally similar to some third scene, which may not reflect their actual semantic character.</p>
 
     <p>There is also a structural imbalance: Scene A has five utterances; Scene B has three. A mean computed from three points carries less statistical weight than one from five, yet the metric ignores this asymmetry.</p>
 
     <h3>Optimal Transport</h3>
 
-    <p>Rather than collapse each scene to a single point, treat it as what it actually is: a cloud of utterance embeddings scattered across semantic space. The climate policy scene in hour 1 contains four utterances — each landing at a specific location in the 384-dimensional embedding space. The climate policy scene in hour 3 contains six utterances — different sentences, but about the same topic, landing in roughly the same region.</p>
+    <p>Rather than collapse each scene to a single point, treat it as what it actually is: a cloud of utterance embeddings scattered across semantic space. The climate policy scene in hour 1 contains four utterances, each landing at a specific location in the 384-dimensional embedding space. The climate policy scene in hour 3 contains six utterances, different sentences, but about the same topic, landing in roughly the same region.</p>
 
-    <p>The question becomes: what is the minimum effort required to rearrange the utterances of Scene A into the configuration of Scene B? Effort here means moving an utterance's semantic mass across the embedding space — short moves are cheap, long moves are expensive.</p>
+    <p>The question becomes: what is the minimum effort required to rearrange the utterances of Scene A into the configuration of Scene B? Effort here means moving an utterance's semantic mass across the embedding space: short moves are cheap, long moves are expensive.</p>
 
     <p>Each scene is a discrete probability distribution over its utterance embeddings. Every utterance contributes equal mass:</p>
 
     <div class="math-block">$$\mu_A = \frac{1}{n} \sum_{i=1}^n \delta_{\hat{e}_i^A}, \quad \mu_B = \frac{1}{m} \sum_{j=1}^m \delta_{\hat{e}_j^B}$$</div>
 
-    <p>Here, $\delta_{\hat{e}_i^A}$ means "one unit of probability mass placed at the location of embedding $\hat{e}_i^A$." Think of it as: each utterance in a scene is a point in semantic space, and they collectively define the scene's profile. The total mass in each distribution is 1, spread equally across utterances—whether Scene A has 3 utterances or 30.</p>
+    <p>Here, $\delta_{\hat{e}_i^A}$ means "one unit of probability mass placed at the location of embedding $\hat{e}_i^A$." Think of it as: each utterance in a scene is a point in semantic space, and they collectively define the scene's profile. The total mass in each distribution is 1, spread equally across utterances, whether Scene A has 3 utterances or 30.</p>
 
-    <p>For each pair of utterances — one from Scene A, one from Scene B — we compute the semantic distance (the transport cost):</p>
+    <p>For each pair of utterances (one from Scene A, one from Scene B) we compute the semantic distance (the transport cost):</p>
 
     <div class="math-block">$$C_{ij} = 1 - \cos\!\left(\hat{e}_i^A,\ \hat{e}_j^B\right)$$</div>
 
-    <p>Now we ask: what matching between utterances minimizes the total transport cost? Climate utterances from Scene A should preferentially match with climate utterances from Scene B (short distance). Scene A economics utterances should match with Scene B economics utterances. The optimal matching is found by solving the transport problem, which yields the <strong>Wasserstein distance</strong>—a single number representing the total minimum effort.</p>
+    <p>Now we ask: what matching between utterances minimizes the total transport cost? Climate utterances from Scene A should preferentially match with climate utterances from Scene B (short distance). Scene A economics utterances should match with Scene B economics utterances. The optimal matching is found by solving the transport problem, which yields the <strong>Wasserstein distance</strong>, a single number representing the total minimum effort.</p>
 
     <p>This metric respects the full structure of each scene, accounts for different scene lengths naturally (unequal distributions are penalized), and gives a principled measure of semantic similarity.</p>
 
     <!-- ── Interactive Optimal Transport Visualization ── -->
     <p><strong>To build intuition, let's see this in action.</strong> Below is an interactive visualization with three lessons:</p>
     <ul style="margin: 1.25rem 0; padding-left: 1.5rem; color: var(--text-secondary); line-height: 1.8; font-size: 1rem;">
-      <li><strong>1D · The Metaphor</strong> — Watch particles physically move from source to target, cost accumulating step by step</li>
-      <li><strong>2D · Scene Transport</strong> — Real utterance embeddings, mass rings shrinking and growing, the semantic gap visualized</li>
-      <li><strong>Why Not Centroids?</strong> — Two scenes with identical centers but different shapes. See why centroids fail</li>
+      <li><strong>1D · The Metaphor</strong>: Watch particles physically move from source to target, cost accumulating step by step</li>
+      <li><strong>2D · Scene Transport</strong>: Real utterance embeddings, mass rings shrinking and growing, the semantic gap visualized</li>
+      <li><strong>Why Not Centroids?</strong> Two scenes with identical centers but different shapes. See why centroids fail</li>
     </ul>
 
     <div style="margin: 2.5rem 0; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid var(--border);">
@@ -1910,7 +1910,7 @@
         src="./ot_visualization.html"
         scrolling="no"
         style="width: 100%; height: 1050px; border: none; background: var(--bg-elevated);"
-        title="Earth Mover's Distance — Interactive Visualization">
+        title="Earth Mover's Distance Interactive Visualization">
       </iframe>
     </div>
 
@@ -1919,25 +1919,25 @@
 
     <h3>Geometric Consistency</h3>
 
-    <p>The cost matrix uses $1 - \cos(\hat{e}_i^A, \hat{e}_j^B)$ — the same metric as the cost signal $c_t = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$. This is deliberate: by reusing the cosine metric throughout, all distances—whether between consecutive utterances or across scenes—live in the same geometric framework. The cost signal, the drift detectors, and the scene similarity measure all operate within this unified space.</p>
+    <p>The cost matrix uses $1 - \cos(\hat{e}_i^A, \hat{e}_j^B)$, the same metric as the cost signal $c_t = 1 - \hat{e}_t \cdot \hat{e}_{t-1}$. This is deliberate: by reusing the cosine metric throughout, all distances, whether between consecutive utterances or across scenes, live in the same geometric framework. The cost signal, the drift detectors, and the scene similarity measure all operate within this unified space.</p>
   </div>
 
   <!-- ── Conclusion ── -->
   <div class="conclusion-card" id="conclusion">
     <h2>Conclusion</h2>
-    <p>Conversations are one of the richest and most structurally complex things humans produce — and they have historically been treated by machines as a flat bag of words. The premise here is different: a conversation has geometry. Topics cluster. Transitions spike. Scenes that circle back to the same idea land near each other in the embedding space, even when separated by an hour of intervening content.</p>
-    <p>What this pipeline does is make that geometry legible. Not by training a classifier, not by defining what a topic is in advance, but by treating the conversation as a stream and listening for where the stream changes. The cost signal catches the moment. The drift detectors decide whether the moment was real. Optimal transport measures how far apart two stretches of that stream actually are — accounting for every utterance, not just an averaged center of mass.</p>
-    <p>The approach is deliberately domain-agnostic. The same formulation that finds topic boundaries in a financial podcast applies equally to a medical consultation, a research interview, or a multi-hour deposition — with no retraining and no domain-specific tuning. That generality is a direct consequence of grounding everything in geometry rather than labels.</p>
+    <p>Conversations are one of the richest and most structurally complex things humans produce, and they have historically been treated by machines as a flat bag of words. The premise here is different: a conversation has geometry. Topics cluster. Transitions spike. Scenes that circle back to the same idea land near each other in the embedding space, even when separated by an hour of intervening content.</p>
+    <p>What this pipeline does is make that geometry legible. Not by training a classifier, not by defining what a topic is in advance, but by treating the conversation as a stream and listening for where the stream changes. The cost signal catches the moment. The drift detectors decide whether the moment was real. Optimal transport measures how far apart two stretches of that stream actually are, accounting for every utterance, not just an averaged center of mass.</p>
+    <p>The approach is deliberately domain-agnostic. The same formulation that finds topic boundaries in a financial podcast applies equally to a medical consultation, a research interview, or a multi-hour deposition, with no retraining and no domain-specific tuning. That generality is a direct consequence of grounding everything in geometry rather than labels.</p>
   </div>
 
   <!-- ── References ── -->
   <div class="references" id="references">
     <h2>References</h2>
     <ol>
-      <li>PageHinkley — <a href="https://riverml.xyz/dev/api/drift/PageHinkley/" target="_blank" rel="noopener">river drift detection: PageHinkley</a></li>
-      <li>KSWIN — <a href="https://riverml.xyz/0.9.0/api/drift/KSWIN/" target="_blank" rel="noopener">river drift detection: KSWIN</a></li>
-      <li>Wasserstein / Earth Mover's Distance — <a href="https://pythonot.github.io/" target="_blank" rel="noopener">POT: Python Optimal Transport library</a></li>
-      <li>Bayesian Online Changepoint Detection — <a href="https://arxiv.org/abs/0710.3742" target="_blank" rel="noopener">Adams &amp; MacKay, 2007</a></li>
+      <li>PageHinkley: <a href="https://riverml.xyz/dev/api/drift/PageHinkley/" target="_blank" rel="noopener">river drift detection: PageHinkley</a></li>
+      <li>KSWIN: <a href="https://riverml.xyz/0.9.0/api/drift/KSWIN/" target="_blank" rel="noopener">river drift detection: KSWIN</a></li>
+      <li>Wasserstein / Earth Mover's Distance: <a href="https://pythonot.github.io/" target="_blank" rel="noopener">POT: Python Optimal Transport library</a></li>
+      <li>Bayesian Online Changepoint Detection: <a href="https://arxiv.org/abs/0710.3742" target="_blank" rel="noopener">Adams &amp; MacKay, 2007</a></li>
     </ol>
   </div>
 
